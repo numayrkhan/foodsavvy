@@ -1,0 +1,47 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed": "node prisma/seed.js",
+    "build:emails": "babel emails -d emails-dist --extensions \".jsx,.js\"",
+    "watch:emails": "babel emails -d emails-dist --extensions \".jsx,.js\" -w"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@react-email/components": "^0.5.0",
+    "@react-email/render": "^1.2.0",
+    "@react-email/tailwind": "^1.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth2": "^0.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "resend": "^6.0.1",
+    "sharp": "^0.34.3",
+    "socket.io": "^4.8.1",
+    "stripe": "^18.4.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-react": "^7.27.1",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.13.0"
+  }
+}
