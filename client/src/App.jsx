@@ -7,6 +7,7 @@ import HowItWorks from "../components/HowItWorks";
 import Testimonials from "../components/Testimonials";
 import Catering from "../components/Catering";
 import Cart from "../components/Cart";
+import CheckoutPage from "../components/CheckoutPage";
 import OrderConfirmation from "../components/OrderConfirmation";
 import Footer from "../components/Footer";
 
@@ -65,6 +66,16 @@ function App() {
               <div className="min-h-screen bg-black">
                 <Header />
                 <Cart />
+                <Footer />
+              </div>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <div className="min-h-screen bg-black">
+                <Header />
+                <CheckoutPage />
                 <Footer />
               </div>
             }

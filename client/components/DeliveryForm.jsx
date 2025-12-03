@@ -1,3 +1,4 @@
+
 // client/components/DeliveryForm.jsx
 import React, {
   useState,
@@ -120,9 +121,10 @@ function PaymentStep({
   );
 }
 
-export default function DeliveryForm() {
+export default function DeliveryForm({ fulfillment = "delivery" }) {
   const navigate = useNavigate();
   const { cart } = useCart();
+  const isPickup = fulfillment === "pickup";
 
   // ---------- Dynamic delivery config ----------
   const [config, setConfig] = useState(null); // { settings, slots, blackouts }
@@ -194,7 +196,8 @@ export default function DeliveryForm() {
     (sum, item) => sum + (item.priceCents * item.quantity) / 100,
     0
   );
-  const feeTotal = fee || 0;
+  // For pickup, fee is always 0
+  const feeTotal = isPickup ? 0 : (fee || 0);
   const salesTax = parseFloat(((itemsTotal + feeTotal) * 0.06625).toFixed(2));
   const grandTotal = (itemsTotal + feeTotal + salesTax).toFixed(2);
 
@@ -334,9 +337,9 @@ export default function DeliveryForm() {
     });
   }, [config, availability, selectedDate]);
 
-  const inRange = fee !== null;
-  const dateChosen = Boolean(selectedDate);
-  const slotChosen = Boolean(selectedSlot);
+  const inRange = isPickup || fee !== null;
+  const dateChosen = isPickup || Boolean(selectedDate);
+  const slotChosen = isPickup || Boolean(selectedSlot);
   const canContinue = inRange && dateChosen && slotChosen;
 
   // Elements options (include clientSecret & hide billing name/email in PE)
@@ -370,36 +373,40 @@ export default function DeliveryForm() {
     <ThemeProvider theme={darkTheme}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <div className="bg-black min-h-screen py-8">
-          <header className="sticky top-0 z-10 bg-gray-800 text-center text-sm text-gray-200 font-medium p-2">
-            Delivery available within {radius} miles {originLine}
-          </header>
+          {!isPickup && (
+            <header className="sticky top-0 z-10 bg-gray-800 text-center text-sm text-gray-200 font-medium p-2">
+              Delivery available within {radius} miles {originLine}
+            </header>
+          )}
 
           <div className="mx-auto md:max-w-md px-4 py-6 bg-gray-900 rounded-lg space-y-6">
-            {/* Delivery Address */}
-            <div>
-              <label
-                htmlFor="delivery-address"
-                className="block text-sm font-semibold text-gray-200 mb-1"
-              >
-                Delivery Address
-              </label>
-              <Autocomplete
-                onLoad={(auto) => (autocompleteRef.current = auto)}
-                onPlaceChanged={onPlaceChanged}
-              >
-                <input
-                  id="delivery-address"
-                  type="text"
-                  placeholder="Enter delivery address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </Autocomplete>
-            </div>
+            {/* Delivery Address - Only for Delivery */}
+            {!isPickup && (
+              <div>
+                <label
+                  htmlFor="delivery-address"
+                  className="block text-sm font-semibold text-gray-200 mb-1"
+                >
+                  Delivery Address
+                </label>
+                <Autocomplete
+                  onLoad={(auto) => (autocompleteRef.current = auto)}
+                  onPlaceChanged={onPlaceChanged}
+                >
+                  <input
+                    id="delivery-address"
+                    type="text"
+                    placeholder="Enter delivery address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </Autocomplete>
+              </div>
+            )}
 
-            {/* Distance / Range */}
-            {coords && distanceMatrixOrigin && (
+            {/* Distance / Range - Only for Delivery */}
+            {!isPickup && coords && distanceMatrixOrigin && (
               <DistanceMatrixService
                 options={{
                   origins: [distanceMatrixOrigin],
@@ -409,13 +416,13 @@ export default function DeliveryForm() {
                 callback={onDistanceCallback}
               />
             )}
-            {distanceMiles != null && (
+            {!isPickup && distanceMiles != null && (
               <p className="text-sm text-gray-200">
                 Estimated distance: {distanceMiles} miles • Fee: $
                 {fee != null ? fee.toFixed(2) : "—"}
               </p>
             )}
-            {coords && fee === null && (
+            {!isPickup && coords && fee === null && (
               <p className="text-sm text-red-500">
                 Sorry, that address is outside our delivery radius.
               </p>
@@ -478,91 +485,94 @@ export default function DeliveryForm() {
               />
             </div>
 
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-1">
-                Delivery Date
-              </label>
-              <DateCalendar
-                views={["day"]}
-                value={selectedDate}
-                onChange={(date) => {
-                  setSelectedDate(date);
-                  setSelectedSlot(null);
-                }}
-                disablePast
-                className="bg-gray-900 text-white rounded-md"
-                shouldDisableDate={(d) =>
-                  d
-                    ? blackoutISO.has(new Date(d).toISOString().slice(0, 10))
-                    : false
-                }
-              />
-            </div>
-
-            {/* Time Slots (show all; grey out full/past; show "n left") */}
-            {selectedDate && (
-              <div>
-                <p className="text-sm text-gray-200 mb-1">
-                  Available Times for {selectedDate.toLocaleDateString()}
-                </p>
-
-                <div className="flex flex-wrap gap-2 pb-1">
-                  {slotMeta.length === 0 && (
-                    <span className="text-gray-400 text-sm">
-                      No slots available for this date
-                    </span>
-                  )}
-
-                  {slotMeta.map((s) => {
-                    const selected = selectedSlot === s.label;
-                    const base =
-                      "flex flex-col items-center justify-center px-5 py-1 rounded-lg text-sm transition border min-w-[84px]";
-                    const enabledClasses =
-                      "bg-gray-800 text-gray-200 border-gray-700 hover:bg-gray-700";
-                    const selectedClasses =
-                      "bg-primary text-white border-transparent";
-                    const disabledClasses =
-                      "bg-gray-700 text-gray-500 border-gray-700 cursor-not-allowed opacity-60";
-
-                    return (
-                      <button
-                        key={s.label}
-                        type="button"
-                        onClick={() => !s.disabled && setSelectedSlot(s.label)}
-                        disabled={s.disabled}
-                        aria-disabled={s.disabled}
-                        title={
-                          s.disabled
-                            ? s.isPast
-                              ? "This time has passed"
-                              : "Fully booked"
-                            : undefined
-                        }
-                        className={`${base} ${
-                          s.disabled
-                            ? disabledClasses
-                            : selected
-                            ? selectedClasses
-                            : enabledClasses
-                        }`}
-                      >
-                        <span className="font-medium">{s.label}</span>
-                        {!s.disabled && s.remaining != null && (
-                          <span className="mt-0.5 text-[11px] text-gray-300 opacity-80">
-                            {s.remaining} left
-                          </span>
-                        )}
-                        {s.disabled && !s.isPast && (
-                          <span className="mt-0.5 text-[11px] text-gray-400 opacity-80">
-                            Sold out
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+            {/* Date & Time Slots - Only for Delivery */}
+            {!isPickup && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-200 mb-1">
+                    Delivery Date
+                  </label>
+                  <DateCalendar
+                    views={["day"]}
+                    value={selectedDate}
+                    onChange={(date) => {
+                      setSelectedDate(date);
+                      setSelectedSlot(null);
+                    }}
+                    disablePast
+                    className="bg-gray-900 text-white rounded-md"
+                    shouldDisableDate={(d) =>
+                      d
+                        ? blackoutISO.has(new Date(d).toISOString().slice(0, 10))
+                        : false
+                    }
+                  />
                 </div>
-              </div>
+
+                {selectedDate && (
+                  <div>
+                    <p className="text-sm text-gray-200 mb-1">
+                      Available Times for {selectedDate.toLocaleDateString()}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 pb-1">
+                      {slotMeta.length === 0 && (
+                        <span className="text-gray-400 text-sm">
+                          No slots available for this date
+                        </span>
+                      )}
+
+                      {slotMeta.map((s) => {
+                        const selected = selectedSlot === s.label;
+                        const base =
+                          "flex flex-col items-center justify-center px-5 py-1 rounded-lg text-sm transition border min-w-[84px]";
+                        const enabledClasses =
+                          "bg-gray-800 text-gray-200 border-gray-700 hover:bg-gray-700";
+                        const selectedClasses =
+                          "bg-primary text-white border-transparent";
+                        const disabledClasses =
+                          "bg-gray-700 text-gray-500 border-gray-700 cursor-not-allowed opacity-60";
+
+                        return (
+                          <button
+                            key={s.label}
+                            type="button"
+                            onClick={() => !s.disabled && setSelectedSlot(s.label)}
+                            disabled={s.disabled}
+                            aria-disabled={s.disabled}
+                            title={
+                              s.disabled
+                                ? s.isPast
+                                  ? "This time has passed"
+                                  : "Fully booked"
+                                : undefined
+                            }
+                            className={`${base} ${
+                              s.disabled
+                                ? disabledClasses
+                                : selected
+                                ? selectedClasses
+                                : enabledClasses
+                            }`}
+                          >
+                            <span className="font-medium">{s.label}</span>
+                            {!s.disabled && s.remaining != null && (
+                              <span className="mt-0.5 text-[11px] text-gray-300 opacity-80">
+                                {s.remaining} left
+                              </span>
+                            )}
+                            {s.disabled && !s.isPast && (
+                              <span className="mt-0.5 text-[11px] text-gray-400 opacity-80">
+                                Sold out
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Order Summary */}
@@ -581,10 +591,12 @@ export default function DeliveryForm() {
                     </span>
                   </div>
                 ))}
-                <div className="flex justify-between pt-2 border-t border-gray-700 font-semibold">
-                  <span>Delivery Fee</span>
-                  <span>{fee != null ? `$${fee.toFixed(2)}` : "—"}</span>
-                </div>
+                {!isPickup && (
+                  <div className="flex justify-between pt-2 border-t border-gray-700 font-semibold">
+                    <span>Delivery Fee</span>
+                    <span>{fee != null ? `$${fee.toFixed(2)}` : "—"}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Sales Tax (6.625%)</span>
                   <span>${salesTax}</span>
@@ -612,15 +624,15 @@ export default function DeliveryForm() {
                       amount: Math.round(parseFloat(grandTotal) * 100),
                       name: billingName || "Guest",
                       email: billingEmail || "guest@example.com",
-                      type: "delivery",
+                      type: fulfillment,
                       metadata: {
-                        type: "delivery",
+                        type: fulfillment,
                         name: billingName || "Guest",
                         email: billingEmail || "guest@example.com",
-                        address,
+                        address: isPickup ? "Pickup" : address,
                         phone,
-                        deliveryDate: localDateKey(selectedDate),
-                        deliverySlot: selectedSlot,
+                        deliveryDate: isPickup ? null : localDateKey(selectedDate),
+                        deliverySlot: isPickup ? null : selectedSlot,
                         menuItems: JSON.stringify(
                           cart
                             .filter((i) => i.type !== "addon")

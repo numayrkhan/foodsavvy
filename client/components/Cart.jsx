@@ -54,7 +54,10 @@ function maxAllowedForLine(line, groupLines) {
 
 /** ---------- Main ---------- **/
 
+import { useNavigate } from "react-router-dom";
+
 export default function Cart() {
+  const navigate = useNavigate();
   const { cart = [], removeFromCart, clearCart, updateQuantity } = useCart();
 
   // Checkout modal state
@@ -263,8 +266,7 @@ export default function Cart() {
             onSelect={(choice) => {
               setFulfillment(choice); // "pickup" | "delivery"
               setModalOpen(false);
-              // Later: route or stash in context for DeliveryForm/Pickup
-              // e.g., navigate(`/checkout/${choice}`);
+              navigate("/checkout", { state: { fulfillment: choice } });
             }}
           />
         </aside>
