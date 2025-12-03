@@ -1,0 +1,72 @@
+# Agent & Coding Guidelines
+
+This document is for AI coding agents (e.g. in Antigravity) and human contributors.
+
+---
+
+## 1. Goals
+
+- Finish and polish the existing FoodSavvy application.
+- Fix known bugs / mismatches between frontend & backend.
+- Complete missing flows (especially checkout) while preserving architecture.
+
+**Do not**:
+
+- Replace the entire stack.
+- Introduce new frameworks or major patterns without explicit instruction.
+
+---
+
+## 2. Workflow for Agents
+
+Before writing code:
+
+1. Read:
+   - `global-rules.md`
+   - This file (`docs/agent-guidelines.md`)
+   - The relevant section of `docs/architecture.md` and `docs/ui-ux-guidelines.md`
+2. Use repo search to understand:
+   - Where the component/endpoint lives.
+   - How the data flows (frontend → backend → Prisma).
+
+When implementing a change:
+
+1. **Plan**
+   - Outline a short, step-by-step plan.
+2. **Code**
+   - Make small, focused edits (prefer multiple small PRs over one huge one).
+3. **Update Docs**
+   - If behavior changes, update relevant docs or add comments.
+4. **Test**
+   - Run the app or tests and describe what you tried.
+
+---
+
+## 3. Code Style
+
+### JavaScript / TypeScript
+
+- Use modern syntax:
+  - `const` and `let`, arrow functions where appropriate.
+  - Async/await instead of raw Promises where possible.
+- Prefer pure functions and clear data flow.
+- Avoid deeply nested callbacks; extract helpers.
+
+Formatting (assume Prettier-style):
+
+- 2 spaces per indentation.
+- Semicolons required.
+- Single quotes for strings (except JSON / JSX attributes where double quotes are OK).
+- Limit line length to ~100 characters where reasonable.
+
+If you add configuration, a typical `.prettierrc` would look like:
+
+```json
+{
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "es5",
+  "tabWidth": 2,
+  "printWidth": 100
+}
+```
