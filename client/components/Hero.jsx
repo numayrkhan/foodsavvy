@@ -16,7 +16,7 @@ export default function Hero() {
           </p>
           <a
             href="#weekly-menu"
-            className="bg-accent hover:bg-accent-dark text-white font-sans font-semibold px-6 py-3 rounded-full shadow-lg transition"
+            className="bg-accent hover:bg-accent-dark text-white font-sans font-bold text-lg px-8 py-4 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)] border-2 border-white/80 hover:scale-105 transition-all transform"
           >
             Order Now
           </a>

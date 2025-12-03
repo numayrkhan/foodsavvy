@@ -107,10 +107,21 @@ export default function Cart() {
 
   const del = (line) => removeFromCart(line.id);
 
+  // Focus heading on mount for accessibility
+  React.useEffect(() => {
+    document.getElementById("cart-heading")?.focus();
+  }, []);
+
   return (
     <section className="container mx-auto px-4 py-10 text-white">
       <header className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-semibold">Your Cart</h2>
+        <h2 
+          id="cart-heading" 
+          tabIndex={-1} 
+          className="text-3xl font-semibold focus:outline-none"
+        >
+          Your Cart
+        </h2>
         <button
           onClick={clearCart}
           className="text-sm bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg"
@@ -238,7 +249,7 @@ export default function Cart() {
           <div className="mt-6">
             <button
               onClick={() => setModalOpen(true)}
-              className="inline-flex items-center justify-center bg-accent hover:bg-accent-dark text-white px-6 py-3 rounded-xl w-full sm:w-auto"
+              className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white text-lg font-bold px-8 py-4 rounded-xl w-full sm:w-auto shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all transform"
               type="button"
             >
               {ctaText}

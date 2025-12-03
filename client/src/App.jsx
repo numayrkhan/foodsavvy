@@ -40,10 +40,13 @@ function Home() {
   );
 }
 
+import ScrollToTop from "../components/ScrollToTop";
+
 function App() {
   return (
     <AdminAuthProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           {/* Public routes */}
           <Route

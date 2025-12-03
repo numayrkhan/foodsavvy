@@ -1,5 +1,5 @@
 // src/components/MenuItem.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "../context/cart-context";
 import AddOnSelector from "./AddOnSelector";
 
@@ -11,10 +11,17 @@ import AddOnSelector from "./AddOnSelector";
  */
 
 export default function MenuItem({ item, serviceDate, serviceLabel }) {
-  const { addToCart, setLastAddedItem } = useCart();
+  const { addToCart, setLastAddedItem, cart } = useCart();
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState([]);
+
+  // Auto-select if only one variant
+  useEffect(() => {
+    if (item.variants?.length === 1 && !selectedVariant) {
+      setSelectedVariant(item.variants[0]);
+    }
+  }, [item.variants, selectedVariant]);
 
   const increment = () => setQuantity((q) => q + 1);
   const decrement = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
@@ -118,14 +125,32 @@ export default function MenuItem({ item, serviceDate, serviceLabel }) {
   // ---- Availability fallback: show a badge even before first order exists ----
   // If server returned item.remaining (number), use it. Otherwise, if admin set a
   // capacityPerDay, show that as the starting number.
-  const remainingDisplay =
+  const serverRemaining =
     typeof item.remaining === "number"
       ? item.remaining
       : typeof item.capacityPerDay === "number"
       ? item.capacityPerDay
       : null;
 
-  const isSoldOut = remainingDisplay !== null && remainingDisplay <= 0;
+  // Calculate quantity already in cart for this item (across all variants/days if needed, but usually per day)
+  // Here we filter by menuItemId. If capacity is per day, we should technically filter by day too?
+  // The backend `remaining` logic seems to be per day (based on `remainingByItem` in `menus.js`).
+  // So we should filter cart items by `menuItemId` AND `serviceDate` (dayKey).
+  const quantityInCart = cart.reduce((acc, cartItem) => {
+    if (
+      cartItem.menuItemId === item.id &&
+      cartItem.type === "item" &&
+      cartItem.serviceDate === dayKey
+    ) {
+      return acc + cartItem.quantity;
+    }
+    return acc;
+  }, 0);
+
+  const liveRemaining =
+    serverRemaining !== null ? Math.max(0, serverRemaining - quantityInCart) : null;
+
+  const isSoldOut = liveRemaining !== null && liveRemaining <= 0;
 
   return (
     <div className="bg-gray-800 rounded-2xl shadow-md p-4 flex flex-col space-y-3">
@@ -158,14 +183,14 @@ export default function MenuItem({ item, serviceDate, serviceLabel }) {
       <div className="flex items-baseline justify-between gap-4">
         <h3 className="text-xl font-semibold text-white">{item.name}</h3>
 
-        {remainingDisplay !== null && (
+        {liveRemaining !== null && (
           <span
             aria-label={
-              remainingDisplay > 0 ? `${remainingDisplay} left` : "Sold out"
+              liveRemaining > 0 ? `${liveRemaining} left` : "Sold out"
             }
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border
         ${
-          remainingDisplay > 0
+          liveRemaining > 0
             ? "border-white/30 bg-white/15 text-white"
             : "border-red-500/50 bg-red-600/25 text-red-200"
         }`}
@@ -173,10 +198,10 @@ export default function MenuItem({ item, serviceDate, serviceLabel }) {
             {/* Tiny status dot for quick scanning */}
             <span
               className={`inline-block w-2.5 h-2.5 rounded-full ${
-                remainingDisplay > 0 ? "bg-emerald-400" : "bg-red-400"
+                liveRemaining > 0 ? "bg-emerald-400" : "bg-red-400"
               }`}
             />
-            {remainingDisplay > 0 ? `${remainingDisplay} left` : "Sold out"}
+            {liveRemaining > 0 ? `${liveRemaining} left` : "Sold out"}
           </span>
         )}
       </div>
@@ -199,16 +224,16 @@ export default function MenuItem({ item, serviceDate, serviceLabel }) {
               <button
                 key={v.id}
                 onClick={() => setSelectedVariant(v)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition
-                  focus:outline-none focus:ring-2 focus:ring-accent
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border
+                  focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-gray-800
                   ${
                     isActive
-                      ? "bg-accent text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      ? "bg-accent border-accent text-white shadow-lg scale-105"
+                      : "bg-gray-700 border-transparent text-gray-300 hover:bg-gray-600 hover:border-gray-500"
                   }`}
                 aria-pressed={isActive}
               >
-                {v.label} (+${(v.priceCents / 100).toFixed(2)})
+                {v.label} <span className="opacity-80 ml-1">+${(v.priceCents / 100).toFixed(2)}</span>
               </button>
             );
           })}
@@ -219,24 +244,26 @@ export default function MenuItem({ item, serviceDate, serviceLabel }) {
       <AddOnSelector addOns={item.addOns || []} onChange={setSelectedAddOns} />
 
       {/* Quantity & Add Button */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={decrement}
-          className="w-8 h-8 bg-gray-700 text-white rounded-lg flex items-center justify-center hover:bg-gray-600 transition"
-          aria-label="Decrease quantity"
-        >
-          –
-        </button>
-        <span className="text-white" aria-live="polite">
-          {quantity}
-        </span>
-        <button
-          onClick={increment}
-          className="w-8 h-8 bg-gray-700 text-white rounded-lg flex items-center justify-center hover:bg-gray-600 transition"
-          aria-label="Increase quantity"
-        >
-          +
-        </button>
+      <div className="flex items-center gap-4 mt-auto pt-2">
+        <div className="flex items-center bg-gray-700 rounded-lg p-1">
+          <button
+            onClick={decrement}
+            className="w-8 h-8 text-white rounded hover:bg-gray-600 transition flex items-center justify-center"
+            aria-label="Decrease quantity"
+          >
+            –
+          </button>
+          <span className="w-8 text-center text-white font-medium" aria-live="polite">
+            {quantity}
+          </span>
+          <button
+            onClick={increment}
+            className="w-8 h-8 text-white rounded hover:bg-gray-600 transition flex items-center justify-center"
+            aria-label="Increase quantity"
+          >
+            +
+          </button>
+        </div>
 
         <button
           onClick={handleAddToCart}
@@ -248,16 +275,17 @@ export default function MenuItem({ item, serviceDate, serviceLabel }) {
               ? "Sold out"
               : "Add to order"
           }
-          className={`ml-auto rounded-lg px-5 py-2 font-medium text-white transition
+          className={`ml-auto flex-1 rounded-lg px-4 py-3 font-bold text-white transition-all transform border
             ${
               selectedVariant && !isSoldOut
-                ? "bg-accent hover:bg-accent-dark"
-                : "bg-gray-600 cursor-not-allowed"
+                ? "bg-accent hover:bg-accent-dark border-white/30 shadow-lg hover:scale-[1.02] active:scale-95"
+                : "bg-gray-600/50 text-gray-400 cursor-not-allowed border-transparent"
             }`}
         >
-          Add to Order
+          {!selectedVariant ? "Select Option" : isSoldOut ? "Sold Out" : "Add to Order"}
         </button>
       </div>
     </div>
   );
 }
+
