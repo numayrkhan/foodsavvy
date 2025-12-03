@@ -70,7 +70,7 @@ export default function CategoriesTab() {
     const res = await fetch(
       `/api/admin/categories/${id}`,
       withAuth({
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify({ name: newName }),
       })
     );

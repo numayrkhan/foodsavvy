@@ -29,7 +29,7 @@ export default function OrderConfirmation() {
     const poll = async () => {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/orders/by-intent/${encodeURIComponent(pi)}`
+          `/api/orders/by-intent/${encodeURIComponent(pi)}`
         );
 
         if (res.status === 404) {

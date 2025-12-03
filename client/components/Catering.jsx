@@ -54,7 +54,7 @@ export default function Catering() {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/catering/orders', {
+      const response = await fetch('/api/catering/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
