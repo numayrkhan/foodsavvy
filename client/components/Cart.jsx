@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/cart-context";
 import DeliveryPickupModal from "./DeliveryPickupModal";
 
@@ -52,9 +53,72 @@ function maxAllowedForLine(line, groupLines) {
   return Math.max(baseline - others, 0);
 }
 
-/** ---------- Main ---------- **/
+/** Component to fetch and display slots for a specific date */
+function DateSlotPicker({ dateKey, selectedSlot, onSelect }) {
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-import { useNavigate } from "react-router-dom";
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetch(`/api/availability?date=${dateKey}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (mounted) {
+          setSlots(data.slots || []);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          console.error("Failed to fetch slots", err);
+          setError("Could not load times");
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [dateKey]);
+
+  if (loading) return <div className="text-sm text-gray-400">Loading times...</div>;
+  if (error) return <div className="text-sm text-red-400">{error}</div>;
+  if (!slots.length) return <div className="text-sm text-amber-400">No slots available</div>;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/10">
+      <p className="text-sm font-medium text-white mb-2">Select a time for this day:</p>
+      <div className="flex flex-wrap gap-2">
+        {slots.map((s) => {
+          const isSelected = selectedSlot === s.label;
+          const isDisabled = !s.active || s.remaining <= 0;
+          return (
+            <button
+              key={s.label}
+              onClick={() => onSelect(s.label)}
+              disabled={isDisabled}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition border ${
+                isSelected
+                  ? "bg-primary text-white border-primary"
+                  : isDisabled
+                  ? "bg-white/5 text-white/30 border-transparent cursor-not-allowed"
+                  : "bg-white/10 text-white hover:bg-white/20 border-transparent"
+              }`}
+            >
+              {s.label}
+              {!isDisabled && s.remaining < 10 && (
+                <span className="ml-1 text-[10px] opacity-70">({s.remaining} left)</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** ---------- Main ---------- **/
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -62,8 +126,10 @@ export default function Cart() {
 
   // Checkout modal state
   const [modalOpen, setModalOpen] = useState(false);
-
   const [fulfillment, setFulfillment] = useState(null); // "pickup" | "delivery"
+
+  // Selected slots state: { [dateKey]: slotLabel }
+  const [selectedSlots, setSelectedSlots] = useState({});
 
   const ctaText = fulfillment
     ? `Continue to ${fulfillment === "delivery" ? "Delivery" : "Pick-Up"}`
@@ -115,6 +181,19 @@ export default function Cart() {
     document.getElementById("cart-heading")?.focus();
   }, []);
 
+  // Validate slots before opening modal
+  const handleCheckoutClick = () => {
+    const missingDates = orderedGroups
+      .map(([dateKey]) => dateKey)
+      .filter((dateKey) => !selectedSlots[dateKey]);
+
+    if (missingDates.length > 0) {
+      alert("Please select a time slot for all days before checking out.");
+      return;
+    }
+    setModalOpen(true);
+  };
+
   return (
     <section className="container mx-auto px-4 py-10 text-white">
       <header className="flex items-center justify-between mb-6">
@@ -141,8 +220,8 @@ export default function Cart() {
       )}
 
       {orderedGroups.map(([dateKey, lines]) => (
-        <section key={dateKey} className="mb-10">
-          <h3 className="text-lg font-semibold text-white mb-3">
+        <section key={dateKey} className="mb-10 bg-gray-900/50 rounded-3xl p-6 border border-white/5">
+          <h3 className="text-xl font-semibold text-white mb-4 border-b border-white/10 pb-2">
             {labelForDateKey(dateKey)}
           </h3>
 
@@ -156,17 +235,17 @@ export default function Cart() {
               return (
                 <div
                   key={line.id}
-                  className="bg-gray-800 rounded-2xl p-4 md:p-6 flex items-start gap-4"
+                  className="bg-gray-800 rounded-2xl p-4 flex items-start gap-4"
                 >
                   {/* thumbnail */}
                   {line.imageUrl ? (
                     <img
                       src={line.imageUrl}
                       alt={line.name}
-                      className="w-20 h-20 object-cover rounded-lg shrink-0"
+                      className="w-16 h-16 object-cover rounded-lg shrink-0"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-lg bg-white/10 shrink-0" />
+                    <div className="w-16 h-16 rounded-lg bg-white/10 shrink-0" />
                   )}
 
                   <div className="flex-1">
@@ -190,24 +269,24 @@ export default function Cart() {
                     </div>
 
                     {/* quantity controls */}
-                    <div className="mt-4 flex items-center gap-3">
+                    <div className="mt-3 flex items-center gap-3">
                       <div className="inline-flex items-center gap-2 bg-white/10 rounded-lg">
                         <button
                           onClick={() => dec(line)}
-                          className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-l-lg"
+                          className="w-7 h-7 flex items-center justify-center hover:bg-white/10 rounded-l-lg"
                           aria-label={`Decrease quantity of ${line.name}`}
                         >
                           –
                         </button>
                         <span
-                          className="min-w-[2ch] text-center"
+                          className="min-w-[2ch] text-center text-sm"
                           aria-live="polite"
                         >
                           {line.quantity || 1}
                         </span>
                         <button
                           onClick={() => inc(line)}
-                          className={`w-8 h-8 flex items-center justify-center rounded-r-lg ${
+                          className={`w-7 h-7 flex items-center justify-center rounded-r-lg ${
                             atLimit
                               ? "opacity-40 cursor-not-allowed"
                               : "hover:bg-white/10"
@@ -224,7 +303,7 @@ export default function Cart() {
 
                       <button
                         onClick={() => del(line)}
-                        className="ml-1 text-sm text-red-300 hover:text-red-200"
+                        className="ml-1 text-xs text-red-300 hover:text-red-200"
                       >
                         Remove
                       </button>
@@ -234,6 +313,13 @@ export default function Cart() {
               );
             })}
           </div>
+
+          {/* Slot Selection for this group */}
+          <DateSlotPicker 
+            dateKey={dateKey} 
+            selectedSlot={selectedSlots[dateKey]} 
+            onSelect={(slot) => setSelectedSlots(prev => ({ ...prev, [dateKey]: slot }))} 
+          />
         </section>
       ))}
 
@@ -251,7 +337,7 @@ export default function Cart() {
 
           <div className="mt-6">
             <button
-              onClick={() => setModalOpen(true)}
+              onClick={handleCheckoutClick}
               className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white text-lg font-bold px-8 py-4 rounded-xl w-full sm:w-auto shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all transform"
               type="button"
             >
@@ -266,7 +352,7 @@ export default function Cart() {
             onSelect={(choice) => {
               setFulfillment(choice); // "pickup" | "delivery"
               setModalOpen(false);
-              navigate("/checkout", { state: { fulfillment: choice } });
+              navigate("/checkout", { state: { fulfillment: choice, selectedSlots } });
             }}
           />
         </aside>

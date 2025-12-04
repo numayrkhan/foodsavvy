@@ -4,7 +4,7 @@ import DeliveryForm from "./DeliveryForm";
 
 export default function CheckoutPage() {
   const location = useLocation();
-  const { fulfillment } = location.state || {};
+  const { fulfillment, selectedSlots } = location.state || {};
 
   // If no fulfillment type is set (e.g. direct access), redirect to cart
   if (!fulfillment) {
@@ -17,7 +17,7 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold text-center mb-8">
           Checkout ({fulfillment === "pickup" ? "Pick-Up" : "Delivery"})
         </h1>
-        <DeliveryForm fulfillment={fulfillment} />
+        <DeliveryForm fulfillment={fulfillment} selectedSlots={selectedSlots} />
       </div>
     </div>
   );

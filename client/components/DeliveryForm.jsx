@@ -44,6 +44,26 @@ const darkTheme = createTheme({
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
+// Helper to group items by date
+function groupByServiceDate(lines) {
+  return lines.reduce((acc, line) => {
+    if (!line?.serviceDate) return acc;
+    (acc[line.serviceDate] ||= []).push(line);
+    return acc;
+  }, {});
+}
+
+// Helper to label the date
+function labelForDateKey(dateKey) {
+  const [y, m, d] = String(dateKey).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
+  return dt.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** Renders PaymentElement and confirms payment INSIDE <Elements> */
 function PaymentStep({
   billingName,
@@ -121,9 +141,9 @@ function PaymentStep({
   );
 }
 
-export default function DeliveryForm({ fulfillment = "delivery" }) {
+export default function DeliveryForm({ fulfillment = "delivery", selectedSlots = {} }) {
   const navigate = useNavigate();
-  const { cart } = useCart();
+  const { cart, clearCart } = useCart();
   const isPickup = fulfillment === "pickup";
 
   // ---------- Dynamic delivery config ----------
@@ -178,8 +198,7 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
   const [billingName, setBillingName] = useState("");
   const [billingEmail, setBillingEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  // Removed local selectedDate/selectedSlot state in favor of passed selectedSlots prop
 
   // Capacity-aware availability (raw from API)
   const [availability, setAvailability] = useState(null);
@@ -200,6 +219,12 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
   const feeTotal = isPickup ? 0 : (fee || 0);
   const salesTax = parseFloat(((itemsTotal + feeTotal) * 0.06625).toFixed(2));
   const grandTotal = (itemsTotal + feeTotal + salesTax).toFixed(2);
+
+  // Group items for display
+  const orderedGroups = useMemo(() => {
+    const groups = groupByServiceDate(cart);
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [cart]);
 
   // Parse address → coords & text
   const onPlaceChanged = useCallback(() => {
@@ -259,88 +284,14 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
     return `${y}-${m}-${dd}`;
   }
 
-  // Fetch availability when date changes
-  useEffect(() => {
-    setSelectedSlot(null);
-    setAvailability(null);
+  // Removed useEffect for availability fetching since slots are passed in
 
-    if (!selectedDate) return;
-
-    const yyyy = selectedDate.getFullYear();
-    const mm = String(selectedDate.getMonth() + 1).padStart(2, "0");
-    const dd = String(selectedDate.getDate()).padStart(2, "0");
-    const dateKey = `${yyyy}-${mm}-${dd}`;
-
-    if (blackoutISO.has(dateKey)) {
-      setAvailability({ date: dateKey, slots: [] });
-      return;
-    }
-
-    fetch(`/api/availability?date=${dateKey}`)
-      .then((res) => res.json())
-      .then((resp) => setAvailability(resp || { date: dateKey, slots: [] }))
-      .catch(() => setAvailability({ date: dateKey, slots: [] }));
-  }, [selectedDate, blackoutISO]);
-
-  // Merge templates (config.slots) with availability → meta for rendering
-  const slotMeta = useMemo(() => {
-    if (!config?.slots) return [];
-    const templates = config.slots.filter((t) => t.active);
-
-    // Remaining map from availability
-    const remainingMap = new Map(
-      (availability?.slots || []).map((s) => [s.label, s.remaining])
-    );
-
-    // Past-time rule (don’t allow times that have already passed "today")
-    const now = new Date();
-    const isToday = selectedDate
-      ? now.getFullYear() === selectedDate.getFullYear() &&
-        now.getMonth() === selectedDate.getMonth() &&
-        now.getDate() === selectedDate.getDate()
-      : false;
-
-    return templates.map((t) => {
-      const remaining = remainingMap.has(t.label)
-        ? remainingMap.get(t.label)
-        : t.capacity;
-
-      let isPast = false;
-      if (isToday) {
-        const m = t.label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-        if (m) {
-          let h = parseInt(m[1], 10);
-          const min = parseInt(m[2], 10);
-          const ap = m[3].toUpperCase();
-          if (ap === "PM" && h !== 12) h += 12;
-          if (ap === "AM" && h === 12) h = 0;
-          const slotDate = new Date(
-            selectedDate.getFullYear(),
-            selectedDate.getMonth(),
-            selectedDate.getDate(),
-            h,
-            min
-          );
-          isPast = slotDate <= now;
-        }
-      }
-
-      const disabled = !selectedDate || remaining <= 0 || isPast;
-
-      return {
-        label: t.label,
-        capacity: t.capacity,
-        remaining: Math.max(0, remaining),
-        disabled,
-        isPast,
-      };
-    });
-  }, [config, availability, selectedDate]);
+  // Removed slotMeta calculation since slots are passed in
 
   const inRange = isPickup || fee !== null;
-  const dateChosen = isPickup || Boolean(selectedDate);
-  const slotChosen = isPickup || Boolean(selectedSlot);
-  const canContinue = inRange && dateChosen && slotChosen;
+  // Slots are pre-validated in Cart, but we check existence here too
+  const hasSlots = selectedSlots && Object.keys(selectedSlots).length > 0;
+  const canContinue = inRange && hasSlots;
 
   // Elements options (include clientSecret & hide billing name/email in PE)
   const elementsOptions = useMemo(() => {
@@ -485,125 +436,52 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
               />
             </div>
 
-            {/* Date & Time Slots - Only for Delivery */}
-            {!isPickup && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-200 mb-1">
-                    Delivery Date
-                  </label>
-                  <DateCalendar
-                    views={["day"]}
-                    value={selectedDate}
-                    onChange={(date) => {
-                      setSelectedDate(date);
-                      setSelectedSlot(null);
-                    }}
-                    disablePast
-                    className="bg-gray-900 text-white rounded-md"
-                    shouldDisableDate={(d) =>
-                      d
-                        ? blackoutISO.has(new Date(d).toISOString().slice(0, 10))
-                        : false
-                    }
-                  />
-                </div>
-
-                {selectedDate && (
-                  <div>
-                    <p className="text-sm text-gray-200 mb-1">
-                      Available Times for {selectedDate.toLocaleDateString()}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 pb-1">
-                      {slotMeta.length === 0 && (
-                        <span className="text-gray-400 text-sm">
-                          No slots available for this date
-                        </span>
-                      )}
-
-                      {slotMeta.map((s) => {
-                        const selected = selectedSlot === s.label;
-                        const base =
-                          "flex flex-col items-center justify-center px-5 py-1 rounded-lg text-sm transition border min-w-[84px]";
-                        const enabledClasses =
-                          "bg-gray-800 text-gray-200 border-gray-700 hover:bg-gray-700";
-                        const selectedClasses =
-                          "bg-primary text-white border-transparent";
-                        const disabledClasses =
-                          "bg-gray-700 text-gray-500 border-gray-700 cursor-not-allowed opacity-60";
-
-                        return (
-                          <button
-                            key={s.label}
-                            type="button"
-                            onClick={() => !s.disabled && setSelectedSlot(s.label)}
-                            disabled={s.disabled}
-                            aria-disabled={s.disabled}
-                            title={
-                              s.disabled
-                                ? s.isPast
-                                  ? "This time has passed"
-                                  : "Fully booked"
-                                : undefined
-                            }
-                            className={`${base} ${
-                              s.disabled
-                                ? disabledClasses
-                                : selected
-                                ? selectedClasses
-                                : enabledClasses
-                            }`}
-                          >
-                            <span className="font-medium">{s.label}</span>
-                            {!s.disabled && s.remaining != null && (
-                              <span className="mt-0.5 text-[11px] text-gray-300 opacity-80">
-                                {s.remaining} left
-                              </span>
-                            )}
-                            {s.disabled && !s.isPast && (
-                              <span className="mt-0.5 text-[11px] text-gray-400 opacity-80">
-                                Sold out
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Order Summary */}
+            {/* Unified Order Summary */}
             <div>
               <p className="text-sm font-semibold text-gray-200 mb-1">
                 Order Summary
               </p>
-              <div className="bg-gray-800 p-4 rounded-md text-sm text-gray-200 space-y-2">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex justify-between">
-                    <span>
-                      {item.quantity}× {item.name}
-                    </span>
-                    <span>
-                      ${((item.priceCents * item.quantity) / 100).toFixed(2)}
-                    </span>
+              <div className="bg-gray-800 p-4 rounded-md text-sm text-gray-200 space-y-4">
+                {orderedGroups.map(([dateKey, items]) => (
+                  <div key={dateKey} className="border-b border-gray-700 pb-3 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-primary">
+                        {labelForDateKey(dateKey)}
+                      </span>
+                      <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
+                        {selectedSlots[dateKey] || "No slot"}
+                      </span>
+                    </div>
+                    <div className="space-y-1 pl-2 border-l-2 border-gray-700">
+                      {items.map((item) => (
+                        <div key={item.id} className="flex justify-between text-gray-300">
+                          <span>
+                            {item.quantity}× {item.name}
+                          </span>
+                          <span>
+                            ${((item.priceCents * item.quantity) / 100).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
-                {!isPickup && (
-                  <div className="flex justify-between pt-2 border-t border-gray-700 font-semibold">
-                    <span>Delivery Fee</span>
-                    <span>{fee != null ? `$${fee.toFixed(2)}` : "—"}</span>
+
+                <div className="pt-2 border-t border-gray-700 space-y-1">
+                  {!isPickup && (
+                    <div className="flex justify-between font-medium">
+                      <span>Delivery Fee</span>
+                      <span>{fee != null ? `$${fee.toFixed(2)}` : "—"}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-400">
+                    <span>Sales Tax (6.625%)</span>
+                    <span>${salesTax}</span>
                   </div>
-                )}
-                <div className="flex justify-between">
-                  <span>Sales Tax (6.625%)</span>
-                  <span>${salesTax}</span>
-                </div>
-                <div className="flex justify-between text-base font-bold pt-2">
-                  <span>Total</span>
-                  <span>${grandTotal}</span>
+                  <div className="flex justify-between text-base font-bold text-white pt-2">
+                    <span>Total</span>
+                    <span>${grandTotal}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -615,6 +493,11 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
               onClick={async () => {
                 setShowPayment(true);
                 setPaymentError("");
+
+                // Backward compatibility: use the first selected slot as the "primary" delivery date/slot
+                const dateKeys = Object.keys(selectedSlots || {}).sort();
+                const firstDateKey = dateKeys[0];
+                const firstSlot = firstDateKey ? selectedSlots[firstDateKey] : null;
 
                 try {
                   const res = await fetch("/api/create-payment-intent", {
@@ -631,8 +514,11 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
                         email: billingEmail || "guest@example.com",
                         address: isPickup ? "Pickup" : address,
                         phone,
-                        deliveryDate: isPickup ? null : localDateKey(selectedDate),
-                        deliverySlot: isPickup ? null : selectedSlot,
+                        // New multi-day schedule format
+                        schedule: JSON.stringify(selectedSlots || {}),
+                        // Legacy fields for backward compatibility (uses first slot)
+                        deliveryDate: isPickup ? null : firstDateKey,
+                        deliverySlot: isPickup ? null : firstSlot,
                         menuItems: JSON.stringify(
                           cart
                             .filter((i) => i.type !== "addon")
@@ -691,6 +577,7 @@ export default function DeliveryForm({ fulfillment = "delivery" }) {
                   setPaymentError={setPaymentError}
                   onSuccess={(piId) => {
                     setPaymentSuccess(true);
+                    clearCart();
                     setTimeout(() => {
                       navigate(
                         `/order-confirmation?pi=${encodeURIComponent(piId)}`

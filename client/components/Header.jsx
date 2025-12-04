@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { useCart } from "../context/cart-context";
 import { HashLink } from "react-router-hash-link";
+import { useLocation, Link } from "react-router-dom";
 import OrderPreview from "./OrderPreview";
 import {
   Bars3Icon,
   XMarkIcon,
   ShoppingCartIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Header() {
-  const { cart } = useCart(); // Removed lastAddedItem since it's not used here
+  const { cart } = useCart();
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const location = useLocation();
+
+  const isCartPage = location.pathname === "/cart";
+  const isCheckoutPage = location.pathname === "/checkout";
+  const isConfirmationPage = location.pathname.startsWith("/order-confirmation");
 
   const navLinks = [
     { name: "Home", to: "/#" },
@@ -47,17 +54,27 @@ export default function Header() {
 
         {/* Cart and Mobile Icons */}
         <div className="relative flex items-center space-x-3">
-          {/* Cart Icon - Simple link to cart page */}
-          <HashLink
-            smooth
-            to="/cart"
-            className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition flex items-center font-medium"
-          >
-            <ShoppingCartIcon className="h-5 w-5 mr-1" />
-            {cart.length > 0 ? `Cart (${cart.length})` : "Order Now"}
-          </HashLink>
+          {/* Context-aware Cart Action */}
+          {isCheckoutPage ? (
+            <Link
+              to="/cart"
+              className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition flex items-center font-medium border border-white/10"
+            >
+              <ArrowLeftIcon className="h-5 w-5 mr-1" />
+              Back to Cart
+            </Link>
+          ) : !isCartPage && !isConfirmationPage ? (
+            <HashLink
+              smooth
+              to="/cart"
+              className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition flex items-center font-medium"
+            >
+              <ShoppingCartIcon className="h-5 w-5 mr-1" />
+              {cart.length > 0 ? `Cart (${cart.length})` : "Order Now"}
+            </HashLink>
+          ) : null}
 
-          <OrderPreview />
+          {!isCartPage && !isCheckoutPage && !isConfirmationPage && <OrderPreview />}
 
           {/* Mobile Menu Icon */}
           <button
