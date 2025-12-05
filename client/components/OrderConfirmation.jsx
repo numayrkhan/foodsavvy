@@ -1,6 +1,7 @@
 // client/src/components/OrderConfirmation.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { groupByServiceDate, labelForDateKey } from "../src/utils/grouping";
 
 export default function OrderConfirmation() {
   const [params] = useSearchParams();
@@ -120,6 +121,10 @@ export default function OrderConfirmation() {
               </code>
             </p>
 
+
+
+// ...
+
             <section className="space-y-3 text-sm">
               <div className="bg-gray-800 rounded-md p-3">
                 <h2 className="font-semibold mb-1">Delivery</h2>
@@ -128,31 +133,55 @@ export default function OrderConfirmation() {
                   {order.customerEmail}
                   {order.phone ? ` • ${order.phone}` : ""}
                 </p>
-                {(order.deliveryDate || order.deliverySlot) && (
-                  <p>
-                    {order.deliveryDate
-                      ? new Date(order.deliveryDate).toLocaleDateString()
-                      : ""}
-                    {order.deliverySlot ? ` • ${order.deliverySlot}` : ""}
-                  </p>
-                )}
               </div>
 
-              <div className="bg-gray-800 rounded-md p-3">
+              <div className="bg-gray-800 rounded-md p-3 space-y-4">
                 <h2 className="font-semibold mb-2">Items</h2>
-                {order.orderItems?.map((oi) => (
-                  <div key={oi.id} className="flex justify-between">
-                    <span>
-                      {oi.quantity}× {oi.menuItem?.name || "Item"}
-                    </span>
-                    <span>{money(oi.priceCents * oi.quantity)}</span>
-                  </div>
-                ))}
+                
+                {/* Grouped Items from DeliveryGroups */}
+                {order.deliveryGroups?.length > 0 ? (
+                  order.deliveryGroups
+                    .sort((a, b) => new Date(a.serviceDate) - new Date(b.serviceDate))
+                    .map((group) => (
+                      <div key={group.id} className="border-b border-gray-700 pb-3 last:border-0 last:pb-0">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium text-primary">
+                            {labelForDateKey(new Date(group.serviceDate).toISOString().slice(0, 10))}
+                          </span>
+                          <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
+                            {group.slot || "No slot"}
+                          </span>
+                        </div>
+                        <div className="space-y-1 pl-2 border-l-2 border-gray-700">
+                          {group.items?.map((oi) => (
+                            <div key={oi.id} className="flex justify-between text-gray-300">
+                              <span>
+                                {oi.quantity}× {oi.menuItem?.name || "Item"}
+                              </span>
+                              <span>{money(oi.priceCents * oi.quantity)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  /* Fallback for legacy orders without groups */
+                  order.orderItems?.map((oi) => (
+                    <div key={oi.id} className="flex justify-between">
+                      <span>
+                        {oi.quantity}× {oi.menuItem?.name || "Item"}
+                      </span>
+                      <span>{money(oi.priceCents * oi.quantity)}</span>
+                    </div>
+                  ))
+                )}
+
                 {order.addOns?.length > 0 && (
                   <>
-                    <div className="border-t border-gray-700 my-2" />
+                    <div className="border-t border-gray-700 my-2 pt-2" />
+                    <h3 className="text-xs font-semibold text-gray-400 mb-1">Add-ons</h3>
                     {order.addOns.map((ao) => (
-                      <div key={ao.id} className="flex justify-between">
+                      <div key={ao.id} className="flex justify-between text-gray-300">
                         <span>
                           {ao.quantity}× {ao.name}
                         </span>

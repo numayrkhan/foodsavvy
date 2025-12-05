@@ -11,6 +11,9 @@ router.get("/orders", async (req, res) => {
         orderItems: {
           include: { menuItem: true }, // 👈 include the linked MenuItem so we can see names
         },
+        deliveryGroups: {
+          include: { items: { include: { menuItem: true } } },
+        },
         addOns: true,
       },
     });

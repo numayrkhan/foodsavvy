@@ -27,6 +27,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefundIcon from "@mui/icons-material/Replay";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useAdminAuth } from "../auth/useAdminAuth";
+import { labelForDateKey } from "../utils/grouping";
 
 function StatusBadge({ status }) {
   const map = {
@@ -98,10 +99,43 @@ export default function OrderList() {
       { field: "phone", headerName: "Phone", width: 150 },
       {
         field: "deliveryDate",
-        headerName: "Date",
-        width: 130,
-        valueGetter: (p) =>
-          p.value ? new Date(p.value).toLocaleDateString() : "",
+        headerName: "Schedule",
+        width: 220,
+        valueGetter: (params) => {
+          if (!params || !params.row) return "";
+          const { deliveryGroups, deliveryDate, deliverySlot } = params.row;
+
+          // 1. Try deliveryGroups
+          if (Array.isArray(deliveryGroups) && deliveryGroups.length > 0) {
+            // Sort to find the earliest
+            const sorted = [...deliveryGroups].sort(
+              (a, b) => new Date(a.serviceDate) - new Date(b.serviceDate)
+            );
+            const group = sorted[0];
+            if (!group || !group.serviceDate) return "";
+
+            const d = new Date(group.serviceDate);
+            const dateStr = d.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+            return group.slot ? `${dateStr} – ${group.slot}` : dateStr;
+          }
+
+          // 2. Fallback to legacy flat fields
+          if (deliveryDate) {
+            const d = new Date(deliveryDate);
+            const dateStr = d.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+            return deliverySlot ? `${dateStr} – ${deliverySlot}` : dateStr;
+          }
+
+          return "";
+        },
       },
       { field: "deliverySlot", headerName: "Time", width: 110 },
       {
@@ -486,10 +520,51 @@ function OrderDetailsDrawer({ open, onClose, order, token, onRefresh }) {
 
           <Divider className="border-accent-dark/30" />
 
+
+
+// ...
+
           {/* Items */}
           <section className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-300">Items</h4>
-            {orderItems.length === 0 ? (
+            {order.deliveryGroups && order.deliveryGroups.length > 0 ? (
+              <div className="space-y-4">
+                {order.deliveryGroups
+                  .sort((a, b) => new Date(a.serviceDate) - new Date(b.serviceDate))
+                  .map((group) => (
+                    <div key={group.id} className="border border-white/10 rounded-md overflow-hidden">
+                      <div className="bg-white/5 px-3 py-2 flex justify-between items-center">
+                        <span className="text-sm font-medium text-accent-light">
+                          {labelForDateKey(new Date(group.serviceDate).toISOString().slice(0, 10))}
+                        </span>
+                        <span className="text-xs text-gray-400 bg-black/20 px-2 py-0.5 rounded">
+                          {group.slot || "No slot"}
+                        </span>
+                      </div>
+                      <ul className="divide-y divide-white/5">
+                        {group.items.map((it) => (
+                          <li
+                            key={it.id}
+                            className="flex items-center justify-between text-sm text-gray-100 px-3 py-2"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {it.menuItem?.name ?? `Item #${it.menuItemId}`}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                × {it.quantity}
+                              </span>
+                            </div>
+                            <span className="font-semibold">
+                              {currency(it.priceCents)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            ) : orderItems.length === 0 ? (
               <p className="text-sm text-gray-500">No items.</p>
             ) : (
               <ul className="space-y-2">

@@ -97,8 +97,11 @@ app.post(
           }
 
           // 1) Parse cart metadata safely
+          console.log("PaymentIntent Metadata:", JSON.stringify(metadata, null, 2)); // LOGGING ADDED
+
           const menuItems = JSON.parse(metadata.menuItems || "[]");
           const addOns = JSON.parse(metadata.addOns || "[]");
+          const scheduleRaw = metadata.schedule ? JSON.parse(metadata.schedule) : null;
 
           // 2) Prefer definitive billing details from latest charge (falls back to metadata)
           const charge = Array.isArray(pi.charges?.data)
@@ -112,38 +115,142 @@ app.post(
           const billingName =
             charge?.billing_details?.name || metadata.name || null;
 
-          // 3) Create order
-          const created = await prisma.order.create({
-            data: {
-              deliveryDate: metadata.deliveryDate
-                ? dateKeyToUTCNoon(metadata.deliveryDate) // metadata is "YYYY-MM-DD"
-                : null,
-              deliverySlot: metadata.deliverySlot || null,
-              fulfillment: metadata.type || "delivery",
-              status: "confirmed",
-              totalCents: pi.amount,
-              address: metadata.address || null,
-              phone: metadata.phone || null,
-              customerEmail: billingEmail,
-              customerName: billingName,
-              stripePaymentIntentId: pi.id,
-
-              orderItems: {
-                create: menuItems.map((item) => ({
-                  menuItemId: parseInt(item.menuItemId, 10),
-                  quantity: parseInt(item.quantity, 10),
-                  priceCents: parseInt(item.priceCents, 10),
-                })),
+          // 3) Create order with transaction to handle DeliveryGroups
+          const created = await prisma.$transaction(async (tx) => {
+            // A) Create the base order
+            const order = await tx.order.create({
+              data: {
+                deliveryDate: metadata.deliveryDate
+                  ? dateKeyToUTCNoon(metadata.deliveryDate)
+                  : null,
+                deliverySlot: metadata.deliverySlot || null,
+                fulfillment: metadata.type || "delivery",
+                status: "confirmed",
+                totalCents: pi.amount,
+                address: metadata.address || null,
+                phone: metadata.phone || null,
+                customerEmail: billingEmail,
+                customerName: billingName,
+                stripePaymentIntentId: pi.id,
+                addOns: {
+                  create: addOns.map((addon) => ({
+                    name: addon.name,
+                    quantity: parseInt(addon.quantity, 10),
+                    priceCents: parseInt(addon.priceCents, 10),
+                  })),
+                },
               },
+            });
 
-              addOns: {
-                create: addOns.map((addon) => ({
-                  name: addon.name,
-                  quantity: parseInt(addon.quantity, 10),
-                  priceCents: parseInt(addon.priceCents, 10),
-                })),
-              },
-            },
+            // B) Group items by serviceDate
+            const itemsByDate = {};
+            const legacyItems = [];
+
+            for (const item of menuItems) {
+              if (item.serviceDate) {
+                (itemsByDate[item.serviceDate] ||= []).push(item);
+              } else {
+                legacyItems.push(item);
+              }
+            }
+
+            // C) Create DeliveryGroups ONLY if schedule exists
+            let scheduleList = [];
+            if (Array.isArray(scheduleRaw)) {
+              scheduleList = scheduleRaw;
+            } else if (typeof scheduleRaw === "object" && scheduleRaw !== null) {
+              // Convert legacy map { date: slot } to array
+              scheduleList = Object.entries(scheduleRaw).map(([date, slot]) => ({
+                date,
+                slot,
+              }));
+            }
+
+            // If we have a schedule, we create groups.
+            if (scheduleList.length > 0) {
+              const handledDates = new Set();
+
+              for (constentry of scheduleList) {
+                const { date, slot } = entry;
+                if (!date) continue;
+
+                handledDates.add(date);
+                const groupItems = itemsByDate[date] || [];
+
+                // Create group for this scheduled date
+                await tx.deliveryGroup.create({
+                  data: {
+                    orderId: order.id,
+                    serviceDate: dateKeyToUTCNoon(date),
+                    slot: slot || null,
+                    items: {
+                      create: groupItems.map((item) => ({
+                        menuItemId: parseInt(item.menuItemId, 10),
+                        quantity: parseInt(item.quantity, 10),
+                        priceCents: parseInt(item.priceCents, 10),
+                        orderId: order.id,
+                      })),
+                    },
+                  },
+                });
+              }
+
+              // Handle items for dates NOT in the schedule but present in itemsByDate (fallback)
+              // These get their own groups (no slot)
+              for (const [dateStr, items] of Object.entries(itemsByDate)) {
+                if (!handledDates.has(dateStr)) {
+                  await tx.deliveryGroup.create({
+                    data: {
+                      orderId: order.id,
+                      serviceDate: dateKeyToUTCNoon(dateStr),
+                      slot: null,
+                      items: {
+                        create: items.map((item) => ({
+                          menuItemId: parseInt(item.menuItemId, 10),
+                          quantity: parseInt(item.quantity, 10),
+                          priceCents: parseInt(item.priceCents, 10),
+                          orderId: order.id,
+                        })),
+                      },
+                    },
+                  });
+                }
+              }
+            } else {
+              // NO SCHEDULE -> NO GROUPS (Legacy behavior)
+              // All items (both with serviceDate and without) are just attached to the order directly.
+              // We do NOT create DeliveryGroups.
+
+              const allItems = [...Object.values(itemsByDate).flat(), ...legacyItems];
+              if (allItems.length > 0) {
+                await tx.orderItem.createMany({
+                  data: allItems.map((item) => ({
+                    orderId: order.id,
+                    menuItemId: parseInt(item.menuItemId, 10),
+                    quantity: parseInt(item.quantity, 10),
+                    priceCents: parseInt(item.priceCents, 10),
+                    // deliveryGroupId is null by default
+                  })),
+                });
+              }
+            }
+            
+            // If we had a schedule, we already handled itemsByDate. 
+            // We still need to handle legacyItems (no serviceDate) if we are in the "schedule exists" path.
+            // If we are in the "no schedule" path, we already handled them above.
+            if (scheduleList.length > 0 && legacyItems.length > 0) {
+               // Attach legacy items directly to order (no group)
+               await tx.orderItem.createMany({
+                  data: legacyItems.map((item) => ({
+                    orderId: order.id,
+                    menuItemId: parseInt(item.menuItemId, 10),
+                    quantity: parseInt(item.quantity, 10),
+                    priceCents: parseInt(item.priceCents, 10),
+                  })),
+                });
+            }
+
+            return order;
           });
 
           // 4) Re-fetch with relations for email template
@@ -151,6 +258,7 @@ app.post(
             where: { id: created.id },
             include: {
               orderItems: { include: { menuItem: true } },
+              deliveryGroups: { include: { items: { include: { menuItem: true } } } },
               addOns: true,
             },
           });
@@ -415,6 +523,7 @@ app.get("/api/orders/by-intent/:piId", async (req, res) => {
       where: { stripePaymentIntentId: piId },
       include: {
         orderItems: { include: { menuItem: true } },
+        deliveryGroups: { include: { items: { include: { menuItem: true } } } },
         addOns: true,
       },
     });

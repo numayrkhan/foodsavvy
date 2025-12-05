@@ -28,6 +28,8 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
+import { groupByServiceDate, labelForDateKey } from "../src/utils/grouping";
+
 const libraries = ["places"];
 
 const darkTheme = createTheme({
@@ -43,26 +45,6 @@ const darkTheme = createTheme({
 });
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
-// Helper to group items by date
-function groupByServiceDate(lines) {
-  return lines.reduce((acc, line) => {
-    if (!line?.serviceDate) return acc;
-    (acc[line.serviceDate] ||= []).push(line);
-    return acc;
-  }, {});
-}
-
-// Helper to label the date
-function labelForDateKey(dateKey) {
-  const [y, m, d] = String(dateKey).split("-").map(Number);
-  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12, 0, 0));
-  return dt.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 /** Renders PaymentElement and confirms payment INSIDE <Elements> */
 function PaymentStep({
@@ -514,8 +496,12 @@ export default function DeliveryForm({ fulfillment = "delivery", selectedSlots =
                         email: billingEmail || "guest@example.com",
                         address: isPickup ? "Pickup" : address,
                         phone,
-                        // New multi-day schedule format
-                        schedule: JSON.stringify(selectedSlots || {}),
+                        // New multi-day schedule format (Array)
+                        schedule: JSON.stringify(
+                          Object.entries(selectedSlots || {}).map(
+                            ([date, slot]) => ({ date, slot })
+                          )
+                        ),
                         // Legacy fields for backward compatibility (uses first slot)
                         deliveryDate: isPickup ? null : firstDateKey,
                         deliverySlot: isPickup ? null : firstSlot,
@@ -527,6 +513,7 @@ export default function DeliveryForm({ fulfillment = "delivery", selectedSlots =
                               quantity: i.quantity,
                               priceCents: i.priceCents,
                               name: i.name,
+                              serviceDate: i.serviceDate, // Added serviceDate
                             }))
                         ),
                         addOns: JSON.stringify(

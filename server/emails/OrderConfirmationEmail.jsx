@@ -1,5 +1,6 @@
 // server/emails/OrderConfirmationEmail.jsx
 import React from "react";
+import { labelForDateKey } from "../../client/src/utils/grouping.js";
 
 /**
  * Props shape (what your webhook passes in):
@@ -231,32 +232,142 @@ export default function OrderConfirmationEmail({ order }) {
                           cellSpacing="0"
                         >
                           <tbody>
-                            {priceRows.map((r, idx) => (
-                              <tr key={idx}>
-                                <td
-                                  style={{
-                                    padding: "8px 0",
-                                    borderBottom: `1px solid ${colors.border}`,
-                                    color: colors.text,
-                                    fontSize: "14px",
-                                  }}
-                                >
-                                  {r.label}
-                                </td>
-                                <td
-                                  align="right"
-                                  style={{
-                                    padding: "8px 0",
-                                    borderBottom: `1px solid ${colors.border}`,
-                                    color: colors.text,
-                                    fontSize: "14px",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {r.value}
-                                </td>
-                              </tr>
-                            ))}
+                            {/* Multi-day groups */}
+                            {order.deliveryGroups && order.deliveryGroups.length > 0 ? (
+                              order.deliveryGroups
+                                .sort((a, b) => new Date(a.serviceDate) - new Date(b.serviceDate))
+                                .map((group, gIdx) => {
+                                  // Format date label
+                                  // Format date label
+                                  const dateLabel = labelForDateKey(
+                                    new Date(group.serviceDate)
+                                      .toISOString()
+                                      .slice(0, 10)
+                                  );
+                                  return (
+                                    <React.Fragment key={gIdx}>
+                                      <tr>
+                                        <td
+                                          colSpan={2}
+                                          style={{
+                                            padding: "12px 0 4px",
+                                            color: colors.accent,
+                                            fontSize: "13px",
+                                            fontWeight: 700,
+                                            borderBottom: `1px solid ${colors.border}`,
+                                          }}
+                                        >
+                                          {dateLabel}
+                                          {group.slot ? ` • ${group.slot}` : ""}
+                                        </td>
+                                      </tr>
+                                      {group.items.map((it, iIdx) => (
+                                        <tr key={iIdx}>
+                                          <td
+                                            style={{
+                                              padding: "8px 0",
+                                              borderBottom: `1px solid ${colors.border}`,
+                                              color: colors.text,
+                                              fontSize: "14px",
+                                              paddingLeft: "12px",
+                                            }}
+                                          >
+                                            {it.quantity}× {it.menuItem?.name || "Item"}
+                                          </td>
+                                          <td
+                                            align="right"
+                                            style={{
+                                              padding: "8px 0",
+                                              borderBottom: `1px solid ${colors.border}`,
+                                              color: colors.text,
+                                              fontSize: "14px",
+                                              whiteSpace: "nowrap",
+                                            }}
+                                          >
+                                            {fmt(it.priceCents * it.quantity)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </React.Fragment>
+                                  );
+                                })
+                            ) : (
+                              /* Legacy flat list */
+                              items.map((it, idx) => (
+                                <tr key={idx}>
+                                  <td
+                                    style={{
+                                      padding: "8px 0",
+                                      borderBottom: `1px solid ${colors.border}`,
+                                      color: colors.text,
+                                      fontSize: "14px",
+                                    }}
+                                  >
+                                    {it.quantity}× {it.menuItem?.name || "Item"}
+                                  </td>
+                                  <td
+                                    align="right"
+                                    style={{
+                                      padding: "8px 0",
+                                      borderBottom: `1px solid ${colors.border}`,
+                                      color: colors.text,
+                                      fontSize: "14px",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {fmt(it.priceCents)}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+
+                            {/* Add-ons */}
+                            {addOns.length > 0 && (
+                              <>
+                                <tr>
+                                  <td
+                                    colSpan={2}
+                                    style={{
+                                      padding: "12px 0 4px",
+                                      color: colors.subtext,
+                                      fontSize: "12px",
+                                      fontWeight: 600,
+                                      borderBottom: `1px solid ${colors.border}`,
+                                    }}
+                                  >
+                                    Add-ons
+                                  </td>
+                                </tr>
+                                {addOns.map((ad, idx) => (
+                                  <tr key={`addon-${idx}`}>
+                                    <td
+                                      style={{
+                                        padding: "8px 0",
+                                        borderBottom: `1px solid ${colors.border}`,
+                                        color: colors.text,
+                                        fontSize: "14px",
+                                        paddingLeft: "12px",
+                                      }}
+                                    >
+                                      {ad.quantity}× {ad.name}
+                                    </td>
+                                    <td
+                                      align="right"
+                                      style={{
+                                        padding: "8px 0",
+                                        borderBottom: `1px solid ${colors.border}`,
+                                        color: colors.text,
+                                        fontSize: "14px",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {fmt(ad.priceCents * ad.quantity)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </>
+                            )}
+
                             {/* total */}
                             <tr>
                               <td
