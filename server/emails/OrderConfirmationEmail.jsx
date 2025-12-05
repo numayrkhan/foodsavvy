@@ -181,7 +181,11 @@ export default function OrderConfirmationEmail({ order }) {
                   <tbody>
                     <tr>
                       <td>
-                        <p style={sectionTitle}>Delivery</p>
+                        <p style={sectionTitle}>
+                          {order.fulfillment === "pickup"
+                            ? "Pickup"
+                            : "Delivery"}
+                        </p>
                         <table
                           role="presentation"
                           width="100%"

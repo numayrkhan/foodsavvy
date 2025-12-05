@@ -123,12 +123,14 @@ export default function OrderConfirmation() {
 
 
 
-// ...
-
             <section className="space-y-3 text-sm">
               <div className="bg-gray-800 rounded-md p-3">
-                <h2 className="font-semibold mb-1">Delivery</h2>
-                {order.address && <p>{order.address}</p>}
+                <h2 className="font-semibold mb-1">
+                  {order.fulfillment === "pickup" ? "Pickup" : "Delivery"}
+                </h2>
+                {order.fulfillment !== "pickup" && order.address && (
+                  <p>{order.address}</p>
+                )}
                 <p>
                   {order.customerEmail}
                   {order.phone ? ` • ${order.phone}` : ""}

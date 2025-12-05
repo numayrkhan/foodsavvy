@@ -485,13 +485,24 @@ function OrderDetailsDrawer({ open, onClose, order, token, onRefresh }) {
           {/* Delivery */}
           <section className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-300">Delivery</h4>
-            <div className="text-sm text-gray-100">
-              Date:{" "}
-              {deliveryDate ? new Date(deliveryDate).toLocaleDateString() : "—"}
-            </div>
-            <div className="text-sm text-gray-100">
-              Time: {labelOrDash(deliverySlot)}
-            </div>
+            {/* If multiple groups, show summary. Else show single date/slot (or legacy). */}
+            {order.deliveryGroups && order.deliveryGroups.length > 1 ? (
+              <div className="text-sm text-gray-100 italic">
+                Multiple dates – see breakdown below
+              </div>
+            ) : (
+              <>
+                <div className="text-sm text-gray-100">
+                  Date:{" "}
+                  {deliveryDate
+                    ? new Date(deliveryDate).toLocaleDateString()
+                    : "—"}
+                </div>
+                <div className="text-sm text-gray-100">
+                  Time: {labelOrDash(deliverySlot)}
+                </div>
+              </>
+            )}
           </section>
 
           {/* Payment */}

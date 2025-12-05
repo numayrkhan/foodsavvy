@@ -166,11 +166,11 @@ app.post(
               }));
             }
 
-            // If we have a schedule, we create groups.
-            if (scheduleList.length > 0) {
+            // If we have a schedule AND it's not pickup, we create groups.
+            if (scheduleList.length > 0 && fulfillment !== "pickup") {
               const handledDates = new Set();
 
-              for (constentry of scheduleList) {
+              for (const entry of scheduleList) {
                 const { date, slot } = entry;
                 if (!date) continue;
 
@@ -238,7 +238,11 @@ app.post(
             // If we had a schedule, we already handled itemsByDate. 
             // We still need to handle legacyItems (no serviceDate) if we are in the "schedule exists" path.
             // If we are in the "no schedule" path, we already handled them above.
-            if (scheduleList.length > 0 && legacyItems.length > 0) {
+            if (
+              scheduleList.length > 0 &&
+              fulfillment !== "pickup" &&
+              legacyItems.length > 0
+            ) {
                // Attach legacy items directly to order (no group)
                await tx.orderItem.createMany({
                   data: legacyItems.map((item) => ({
