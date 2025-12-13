@@ -81,14 +81,15 @@ model MenuItem {
 }
 
 model AddOn {
-  id             Int              @id @default(autoincrement())
-  name           String
-  description    String?
-  priceCents     Int              @map("price_cents")
-  imageUrl       String?          @map("image_url")
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  menuItemAddOns MenuItemAddOns[]
+  id               Int               @id @default(autoincrement())
+  orderId          Int?               @map("order_id")
+  deliveryGroupId  Int?              @map("delivery_group_id") // NEW: Optional for legacy, but use for new orders
+  name             String
+  quantity         Int?
+  priceCents       Int               @map("price_cents")
+  order            Order?             @relation(fields: [orderId], references: [id])
+  deliveryGroup    DeliveryGroup?    @relation(fields: [deliveryGroupId], references: [id]) // NEW
+  menuItemAddOns   MenuItemAddOns[]  // FIXED: Opposite relation for MenuItemAddOns.addOn
 }
 
 // Explicit many-to-many relation table
@@ -126,7 +127,7 @@ model Order {
   updatedAt             DateTime     @updatedAt @map("updated_at")
   user                  User?        @relation(fields: [userId], references: [id])
   orderItems            OrderItem[]
-  addOns                OrderAddOn[]
+  addOns                AddOn[]          @relation("AddOnToOrder") // FIXED: Opposite for AddOn.order with explicit name
   address               String?
   phone                 String?
   customerEmail         String?
@@ -140,6 +141,7 @@ model Order {
 
   // Back‑relation for DeliveryGroup.order
   deliveryGroups DeliveryGroup[] // NEW
+  orderAddOns      OrderAddOn[]
 }
 
 model OrderItem {
@@ -210,6 +212,7 @@ model DeliveryGroup {
   slot        String?
   order       Order       @relation(fields: [orderId], references: [id])
   items       OrderItem[]
+  addOns      AddOn[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
