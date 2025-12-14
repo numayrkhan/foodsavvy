@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require('./generated/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
 const Stripe = require("stripe");

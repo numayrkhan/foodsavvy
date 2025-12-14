@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -15,19 +16,21 @@ datasource db {
  * - Supports phone/whatsapp/manual orders + cash payments
  */
 
-/* =========================
-   USERS / ACCOUNTS
-   ========================= */
+/**
+ * =========================
+ * USERS / ACCOUNTS
+ * =========================
+ */
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  googleId  String?  @map("google_id")
-  role      UserRole @default(customer)
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  name     String?
+  googleId String?  @map("google_id")
+  role     UserRole @default(customer)
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Customer orders (account holders)
   orders Order[] @relation("CustomerOrders")
@@ -49,7 +52,8 @@ model User {
   rewardAccount RewardAccount?
 
   // Reviews
-  reviews Review[]
+  reviews              Review[]
+  promotionRedemptions PromotionRedemption[]
 }
 
 enum UserRole {
@@ -59,67 +63,70 @@ enum UserRole {
   admin
 }
 
-/* =========================
-   CATALOG (WHAT YOU SELL)
-   ========================= */
+/**
+ * =========================
+ * CATALOG (WHAT YOU SELL)
+ * =========================
+ */
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  position  Int      @default(0)
+  id       Int    @id @default(autoincrement())
+  name     String @unique
+  position Int    @default(0)
 
-  items     MenuItem[]
+  items MenuItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 }
 
 model MenuItem {
-  id          Int       @id @default(autoincrement())
-  categoryId  Int?      @map("category_id")
+  id         Int  @id @default(autoincrement())
+  categoryId Int? @map("category_id")
 
   name        String
   description String?
-  imageUrl    String?   @map("image_url")
+  imageUrl    String? @map("image_url")
 
   // Optional: store macros/allergens in JSON early, normalize later if needed
-  nutrition   Json?
-  allergens   Json?
+  nutrition Json?
+  allergens Json?
 
-  isActive    Boolean   @default(true)
-  archivedAt  DateTime? @map("archived_at")
+  isActive   Boolean   @default(true)
+  archivedAt DateTime? @map("archived_at")
 
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  variants    MenuVariant[]
-  addOnLinks  MenuItemAddOn[]
+  category   Category?       @relation(fields: [categoryId], references: [id])
+  variants   MenuVariant[]
+  addOnLinks MenuItemAddOn[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  cateringItems CateringItem[]
 
   @@index([categoryId])
   @@index([isActive])
 }
 
 model MenuVariant {
-  id           Int     @id @default(autoincrement())
-  menuItemId   Int     @map("menu_item_id")
+  id         Int @id @default(autoincrement())
+  menuItemId Int @map("menu_item_id")
 
-  label        String  // "Small", "Medium", "Tray"
-  basePriceCents Int   @map("base_price_cents")
-  baseCapacity Int?    @map("base_capacity") // null = unlimited
-  isActive     Boolean @default(true)
+  label          String // "Small", "Medium", "Tray"
+  basePriceCents Int     @map("base_price_cents")
+  baseCapacity   Int?    @map("base_capacity") // null = unlimited
+  isActive       Boolean @default(true)
 
   // Future analytics hooks (contribution margin)
-  prepMinutes         Int? @map("prep_minutes")
-  packagingCostCents  Int? @map("packaging_cost_cents")
+  prepMinutes        Int? @map("prep_minutes")
+  packagingCostCents Int? @map("packaging_cost_cents")
 
-  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
 
-  offerings   MenuOffering[]
-  orderItems  OrderItem[]
+  offerings  MenuOffering[]
+  orderItems OrderItem[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([menuItemId])
   @@index([isActive])
@@ -131,14 +138,14 @@ model AddOn {
   description String?
   imageUrl    String? @map("image_url")
 
-  priceCents  Int     @map("price_cents")
-  isActive    Boolean @default(true)
+  priceCents Int     @map("price_cents")
+  isActive   Boolean @default(true)
 
-  itemLinks   MenuItemAddOn[]
-  orderLinks  OrderItemAddOn[]
+  itemLinks  MenuItemAddOn[]
+  orderLinks OrderItemAddOn[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 }
 
 model MenuItemAddOn {
@@ -154,9 +161,11 @@ model MenuItemAddOn {
   @@id([menuItemId, addOnId])
 }
 
-/* =========================
-   SCHEDULING (WHAT'S OFFERED WHEN)
-   ========================= */
+/**
+ * =========================
+ * SCHEDULING (WHAT'S OFFERED WHEN)
+ * =========================
+ */
 
 /**
  * ServiceDay is the anchor for daily ops.
@@ -165,23 +174,23 @@ model MenuItemAddOn {
  * Later same-day: menuDate can equal serviceDate on those days.
  */
 model ServiceDay {
-  id             Int      @id @default(autoincrement())
-  menuDate       DateTime @map("menu_date")
-  serviceDate    DateTime @unique @map("service_date")
+  id          Int      @id @default(autoincrement())
+  menuDate    DateTime @map("menu_date")
+  serviceDate DateTime @unique @map("service_date")
 
-  label          String?  // e.g., "Monday Menu"
-  isPublished    Boolean  @default(false)
-  isClosed       Boolean  @default(false)
-  closedReason   String?  @map("closed_reason")
+  label        String? // e.g., "Monday Menu"
+  isPublished  Boolean @default(false)
+  isClosed     Boolean @default(false)
+  closedReason String? @map("closed_reason")
 
   orderingCutoffAt DateTime? @map("ordering_cutoff_at") // optional per day cutoff
 
-  menus          Menu[]
-  slots          ServiceSlot[]
-  groups         FulfillmentGroup[]
+  menus  Menu[]
+  slots  ServiceSlot[]
+  groups FulfillmentGroup[]
 
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([menuDate])
   @@index([isPublished])
@@ -200,19 +209,19 @@ enum MenuType {
  * What’s actually sellable lives in MenuOffering.
  */
 model Menu {
-  id          Int      @id @default(autoincrement())
-  serviceDayId Int     @map("service_day_id")
+  id           Int @id @default(autoincrement())
+  serviceDayId Int @map("service_day_id")
 
-  menuType    MenuType @default(EVERYDAY)
-  title       String?
-  isPublished Boolean  @default(false)
-  displayOrder Int     @default(0)
+  menuType     MenuType @default(EVERYDAY)
+  title        String?
+  isPublished  Boolean  @default(false)
+  displayOrder Int      @default(0)
 
-  serviceDay  ServiceDay    @relation(fields: [serviceDayId], references: [id])
-  offerings   MenuOffering[]
+  serviceDay ServiceDay     @relation(fields: [serviceDayId], references: [id])
+  offerings  MenuOffering[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([serviceDayId, menuType])
   @@index([menuType])
@@ -223,32 +232,34 @@ model Menu {
  * "Variant X is offered on Menu Y with overrides"
  */
 model MenuOffering {
-  id              Int     @id @default(autoincrement())
-  menuId          Int     @map("menu_id")
-  menuVariantId   Int     @map("menu_variant_id")
+  id            Int @id @default(autoincrement())
+  menuId        Int @map("menu_id")
+  menuVariantId Int @map("menu_variant_id")
 
-  priceOverrideCents Int? @map("price_override_cents")
-  capacityOverride  Int?  @map("capacity_override") // overrides MenuVariant.baseCapacity
-  isAvailable       Boolean @default(true)
-  maxPerOrder       Int?  @map("max_per_order")
-  position          Int   @default(0)
+  priceOverrideCents Int?    @map("price_override_cents")
+  capacityOverride   Int?    @map("capacity_override") // overrides MenuVariant.baseCapacity
+  isAvailable        Boolean @default(true)
+  maxPerOrder        Int?    @map("max_per_order")
+  position           Int     @default(0)
 
-  menu            Menu        @relation(fields: [menuId], references: [id])
-  variant         MenuVariant @relation(fields: [menuVariantId], references: [id])
+  menu    Menu        @relation(fields: [menuId], references: [id])
+  variant MenuVariant @relation(fields: [menuVariantId], references: [id])
 
-  holds           CapacityHold[]
+  holds CapacityHold[]
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([menuId, menuVariantId])
   @@index([menuId, position])
   @@index([menuVariantId])
 }
 
-/* =========================
-   FULFILLMENT (PICKUP / DELIVERY)
-   ========================= */
+/**
+ * =========================
+ * FULFILLMENT (PICKUP / DELIVERY)
+ * =========================
+ */
 
 enum FulfillmentType {
   delivery
@@ -256,25 +267,25 @@ enum FulfillmentType {
 }
 
 model PickupLocation {
-  id          Int     @id @default(autoincrement())
-  name        String
+  id   Int    @id @default(autoincrement())
+  name String
 
-  line1       String
-  line2       String?
-  city        String
-  state       String
-  postalCode  String
-  country     String  @default("US")
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String  @default("US")
 
-  timezone    String? // e.g. "America/New_York"
+  timezone     String? // e.g. "America/New_York"
   instructions String?
-  isActive    Boolean @default(true)
+  isActive     Boolean @default(true)
 
   serviceSlots ServiceSlot[]
   orders       Order[]
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([isActive])
 }
@@ -284,29 +295,29 @@ model PickupLocation {
  * For snapshots: isSnapshot=true, userId can be null (guest).
  */
 model Address {
-  id          Int     @id @default(autoincrement())
-  userId      Int?    @map("user_id")
+  id     Int  @id @default(autoincrement())
+  userId Int? @map("user_id")
 
-  label       String?
-  line1       String
-  line2       String?
-  city        String
-  state       String
-  postalCode  String
-  country     String @default("US")
+  label      String?
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String  @default("US")
 
-  lat         Float?
-  lng         Float?
+  lat Float?
+  lng Float?
 
-  isDefault   Boolean @default(false)
-  isSnapshot  Boolean @default(false)
+  isDefault  Boolean @default(false)
+  isSnapshot Boolean @default(false)
 
-  user        User?   @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   deliveryOrders Order[] @relation("OrderDeliveryAddress")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
 }
@@ -316,44 +327,44 @@ model Address {
  * ServiceSlot = slot instance for a specific ServiceDay (+ fulfillmentType)
  */
 model SlotTemplate {
-  id            Int     @id @default(autoincrement())
-  label         String  // "5:00–6:00 PM"
-  startMin      Int     // minutes from midnight
-  endMin        Int
-  defaultCapacity Int   @default(0) // 0 can mean "no capacity limit" if you want
-  isActive      Boolean @default(true)
+  id              Int     @id @default(autoincrement())
+  label           String // "5:00–6:00 PM"
+  startMin        Int // minutes from midnight
+  endMin          Int
+  defaultCapacity Int     @default(0) // 0 can mean "no capacity limit" if you want
+  isActive        Boolean @default(true)
 
-  serviceSlots  ServiceSlot[]
+  serviceSlots ServiceSlot[]
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([isActive])
 }
 
 model ServiceSlot {
-  id             Int     @id @default(autoincrement())
-  serviceDayId    Int     @map("service_day_id")
-  slotTemplateId  Int     @map("slot_template_id")
+  id             Int @id @default(autoincrement())
+  serviceDayId   Int @map("service_day_id")
+  slotTemplateId Int @map("slot_template_id")
 
-  fulfillmentType FulfillmentType @map("fulfillment_type")
-  pickupLocationId Int?   @map("pickup_location_id")
+  fulfillmentType  FulfillmentType @map("fulfillment_type")
+  pickupLocationId Int?            @map("pickup_location_id")
 
   // Use slotKey to enforce uniqueness cleanly across optional pickupLocationId
   // Example: "DELIVERY:12:5" or "PICKUP:12:3:5" (serviceDayId:pickupLocationId:slotTemplateId)
-  slotKey        String  @unique @map("slot_key")
+  slotKey String @unique @map("slot_key")
 
-  capacityOverride Int?  @map("capacity_override")
-  isClosed       Boolean @default(false)
+  capacityOverride Int?    @map("capacity_override")
+  isClosed         Boolean @default(false)
 
-  serviceDay     ServiceDay   @relation(fields: [serviceDayId], references: [id])
-  template       SlotTemplate @relation(fields: [slotTemplateId], references: [id])
+  serviceDay     ServiceDay      @relation(fields: [serviceDayId], references: [id])
+  template       SlotTemplate    @relation(fields: [slotTemplateId], references: [id])
   pickupLocation PickupLocation? @relation(fields: [pickupLocationId], references: [id])
 
-  groups         FulfillmentGroup[]
+  groups FulfillmentGroup[]
 
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([serviceDayId, fulfillmentType])
 }
@@ -363,29 +374,31 @@ model ServiceSlot {
  * AND store bundling rules for multi-day orders in JSON.
  */
 model DeliverySettings {
-  id             Int      @id @default(1)
+  id Int @id @default(1)
 
-  originAddress  String   @map("origin_address")
-  originLat      Float?   @map("origin_lat")
-  originLng      Float?   @map("origin_lng")
+  originAddress String @map("origin_address")
+  originLat     Float? @map("origin_lat")
+  originLng     Float? @map("origin_lng")
 
-  maxRadiusMiles Float    @default(15) @map("max_radius_miles")
+  maxRadiusMiles Float @default(15) @map("max_radius_miles")
 
   // e.g. [{ "toMiles": 5, "feeCents": 1000 }, { "toMiles": 10, "feeCents": 1500 }]
-  feeTiers       Json     @map("fee_tiers")
+  feeTiers Json @map("fee_tiers")
 
   // e.g. { "mode":"bundle", "bundleSize":3, "bundleFeeCents":1500, "extraBundleFeeCents":1000 }
-  bundlePolicy   Json?    @map("bundle_policy")
+  bundlePolicy Json? @map("bundle_policy")
 
-  pricingMode    DeliveryPricingMode @default(per_order_bundled) @map("pricing_mode")
+  pricingMode DeliveryPricingMode @default(per_order_bundled) @map("pricing_mode")
 
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 }
 
-/* =========================
-   ORDERS (WHAT WAS BOUGHT)
-   ========================= */
+/**
+ * =========================
+ * ORDERS (WHAT WAS BOUGHT)
+ * =========================
+ */
 
 enum OrderSource {
   web
@@ -422,34 +435,34 @@ enum DeliveryPricingMode {
 }
 
 model Order {
-  id              Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   // Identity / channel
-  userId          Int?     @map("user_id")
-  createdByUserId Int?     @map("created_by_user_id")
+  userId          Int?        @map("user_id")
+  createdByUserId Int?        @map("created_by_user_id")
   source          OrderSource @default(web)
-  sourceRef       String?  @map("source_ref") // whatsapp thread, phone log id, etc.
+  sourceRef       String?     @map("source_ref") // whatsapp thread, phone log id, etc.
 
-  currency        String   @default("USD")
+  currency String @default("USD")
 
-  checkoutStatus  OrderCheckoutStatus @default(draft) @map("checkout_status")
+  checkoutStatus      OrderCheckoutStatus @default(draft) @map("checkout_status")
   deliveryPricingMode DeliveryPricingMode @default(per_order_bundled) @map("delivery_pricing_mode")
 
   // Kenny-style: fulfillment chosen up-front and applies to the whole order
-  fulfillmentType FulfillmentType? @map("fulfillment_type")
-  pickupLocationId Int?   @map("pickup_location_id")
-  deliveryAddressId Int?  @map("delivery_address_id")
+  fulfillmentType   FulfillmentType? @map("fulfillment_type")
+  pickupLocationId  Int?             @map("pickup_location_id")
+  deliveryAddressId Int?             @map("delivery_address_id")
 
   // optional: store distance for audit/debug
   deliveryDistanceMiles Float? @map("delivery_distance_miles")
 
   // Guest-capable snapshots (also used for phone/whatsapp orders)
-  customerName    String?  @map("customer_name")
-  customerEmail   String?  @map("customer_email")
-  customerPhone   String?  @map("customer_phone")
+  customerName  String? @map("customer_name")
+  customerEmail String? @map("customer_email")
+  customerPhone String? @map("customer_phone")
 
-  customerNotes   String?  @map("customer_notes")
-  internalNotes   String?  @map("internal_notes")
+  customerNotes String? @map("customer_notes")
+  internalNotes String? @map("internal_notes")
 
   // Money summary (details live in adjustments & payments)
   subtotalCents    Int @default(0) @map("subtotal_cents")
@@ -457,24 +470,27 @@ model Order {
   totalCents       Int @default(0) @map("total_cents")
   refundedCents    Int @default(0) @map("refunded_cents")
 
-  placedAt        DateTime? @map("placed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt      @map("updated_at")
+  placedAt  DateTime? @map("placed_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user         User? @relation("CustomerOrders", fields: [userId], references: [id])
-  createdBy    User? @relation("CreatedByOrders", fields: [createdByUserId], references: [id])
+  user      User? @relation("CustomerOrders", fields: [userId], references: [id])
+  createdBy User? @relation("CreatedByOrders", fields: [createdByUserId], references: [id])
 
   pickupLocation  PickupLocation? @relation(fields: [pickupLocationId], references: [id])
-  deliveryAddress Address? @relation("OrderDeliveryAddress", fields: [deliveryAddressId], references: [id])
+  deliveryAddress Address?        @relation("OrderDeliveryAddress", fields: [deliveryAddressId], references: [id])
 
-  groups       FulfillmentGroup[]
-  items        OrderItem[]
-  adjustments  OrderAdjustment[]
-  payments     Payment[]
-  events       OrderEvent[]
+  groups      FulfillmentGroup[]
+  items       OrderItem[]
+  adjustments OrderAdjustment[]
+  payments    Payment[]
+  events      OrderEvent[]
 
-  promoRedemptions PromotionRedemption[]
+  promoRedemptions   PromotionRedemption[]
+  capacityHolds      CapacityHold[]
+  rewardTransactions RewardTransaction[]
+  reviews            Review[]
 
   @@index([userId])
   @@index([createdByUserId])
@@ -484,30 +500,29 @@ model Order {
 }
 
 model FulfillmentGroup {
-  id            Int     @id @default(autoincrement())
-  orderId       Int     @map("order_id")
-  serviceDayId  Int     @map("service_day_id")
-  serviceSlotId Int?    @map("service_slot_id")
+  id            Int  @id @default(autoincrement())
+  orderId       Int  @map("order_id")
+  serviceDayId  Int  @map("service_day_id")
+  serviceSlotId Int? @map("service_slot_id")
 
-  status        FulfillmentGroupStatus @default(pending)
+  status FulfillmentGroupStatus @default(pending)
 
   // UI grouping order (e.g., Tue then Wed then Fri)
-  sequence      Int     @default(0)
+  sequence Int @default(0)
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  order        Order      @relation(fields: [orderId], references: [id])
-  serviceDay   ServiceDay @relation(fields: [serviceDayId], references: [id])
-  serviceSlot  ServiceSlot? @relation(fields: [serviceSlotId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+  serviceDay  ServiceDay   @relation(fields: [serviceDayId], references: [id])
+  serviceSlot ServiceSlot? @relation(fields: [serviceSlotId], references: [id])
 
-  items        OrderItem[]
-  adjustments  OrderAdjustment[]
-  events       OrderEvent[]
+  items       OrderItem[]
+  adjustments OrderAdjustment[]
+  events      OrderEvent[]
 
   // One group per service day per order (supports multi-day carts cleanly)
   @@unique([orderId, serviceDayId])
-
   @@index([serviceDayId])
   @@index([status])
 }
@@ -518,24 +533,24 @@ model OrderItem {
   fulfillmentGroupId Int @map("fulfillment_group_id")
   menuVariantId      Int @map("menu_variant_id")
 
-  quantity           Int
-  unitPriceCents     Int @map("unit_price_cents")
+  quantity       Int
+  unitPriceCents Int @map("unit_price_cents")
 
   // immutable snapshots for history
-  nameSnapshot        String  @map("name_snapshot")
-  variantLabelSnapshot String @map("variant_label_snapshot")
+  nameSnapshot         String  @map("name_snapshot")
+  variantLabelSnapshot String  @map("variant_label_snapshot")
   imageUrlSnapshot     String? @map("image_url_snapshot")
 
-  notes              String?
+  notes String?
 
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  order              Order            @relation(fields: [orderId], references: [id])
-  group              FulfillmentGroup @relation(fields: [fulfillmentGroupId], references: [id])
-  variant            MenuVariant      @relation(fields: [menuVariantId], references: [id])
+  order   Order            @relation(fields: [orderId], references: [id])
+  group   FulfillmentGroup @relation(fields: [fulfillmentGroupId], references: [id])
+  variant MenuVariant      @relation(fields: [menuVariantId], references: [id])
 
-  addOns             OrderItemAddOn[]
+  addOns OrderItemAddOn[]
 
   @@index([orderId])
   @@index([fulfillmentGroupId])
@@ -543,16 +558,16 @@ model OrderItem {
 }
 
 model OrderItemAddOn {
-  id            Int @id @default(autoincrement())
-  orderItemId   Int @map("order_item_id")
-  addOnId       Int? @map("add_on_id")
+  id          Int  @id @default(autoincrement())
+  orderItemId Int  @map("order_item_id")
+  addOnId     Int? @map("add_on_id")
 
-  quantity      Int
-  unitPriceCents Int @map("unit_price_cents")
-  nameSnapshot  String @map("name_snapshot")
+  quantity       Int
+  unitPriceCents Int    @map("unit_price_cents")
+  nameSnapshot   String @map("name_snapshot")
 
-  orderItem     OrderItem @relation(fields: [orderItemId], references: [id])
-  addOn         AddOn?    @relation(fields: [addOnId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  addOn     AddOn?    @relation(fields: [addOnId], references: [id])
 
   @@index([orderItemId])
 }
@@ -567,19 +582,19 @@ enum AdjustmentType {
 }
 
 model OrderAdjustment {
-  id                Int @id @default(autoincrement())
-  orderId            Int @map("order_id")
+  id                 Int  @id @default(autoincrement())
+  orderId            Int  @map("order_id")
   fulfillmentGroupId Int? @map("fulfillment_group_id")
 
-  type              AdjustmentType
-  label             String?
-  amountCents       Int @map("amount_cents") // +fee/tax, -discount
-  metadata          Json?
+  type        AdjustmentType
+  label       String?
+  amountCents Int            @map("amount_cents") // +fee/tax, -discount
+  metadata    Json?
 
-  createdAt         DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  order             Order            @relation(fields: [orderId], references: [id])
-  group             FulfillmentGroup? @relation(fields: [fulfillmentGroupId], references: [id])
+  order Order             @relation(fields: [orderId], references: [id])
+  group FulfillmentGroup? @relation(fields: [fulfillmentGroupId], references: [id])
 
   @@index([orderId])
   @@index([fulfillmentGroupId])
@@ -611,52 +626,54 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id               Int @id @default(autoincrement())
-  orderId           Int @map("order_id")
+  id      Int @id @default(autoincrement())
+  orderId Int @map("order_id")
 
-  provider         PaymentProvider @default(manual)
-  method           PaymentMethod
-  status           PaymentStatus
+  provider PaymentProvider @default(manual)
+  method   PaymentMethod
+  status   PaymentStatus
 
-  amountCents      Int @map("amount_cents")
+  amountCents Int @map("amount_cents")
 
   // Stripe or external references
-  providerRef      String? @map("provider_ref") // payment_intent, charge id, receipt id, etc.
+  providerRef String? @map("provider_ref") // payment_intent, charge id, receipt id, etc.
 
   // If cash/offline recorded by staff:
-  receivedByUserId Int? @map("received_by_user_id")
+  receivedByUserId Int?      @map("received_by_user_id")
   receivedAt       DateTime? @map("received_at")
 
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  order            Order @relation(fields: [orderId], references: [id])
-  receivedBy       User? @relation("CashReceivedBy", fields: [receivedByUserId], references: [id])
+  order      Order @relation(fields: [orderId], references: [id])
+  receivedBy User? @relation("CashReceivedBy", fields: [receivedByUserId], references: [id])
 
   @@index([orderId])
   @@index([status])
 }
 
 model OrderEvent {
-  id                Int @id @default(autoincrement())
-  orderId            Int @map("order_id")
+  id                 Int  @id @default(autoincrement())
+  orderId            Int  @map("order_id")
   fulfillmentGroupId Int? @map("fulfillment_group_id")
 
-  type              String
-  payload           Json?
+  type    String
+  payload Json?
 
-  createdAt         DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  order             Order            @relation(fields: [orderId], references: [id])
-  group             FulfillmentGroup? @relation(fields: [fulfillmentGroupId], references: [id])
+  order Order             @relation(fields: [orderId], references: [id])
+  group FulfillmentGroup? @relation(fields: [fulfillmentGroupId], references: [id])
 
   @@index([orderId])
   @@index([fulfillmentGroupId])
 }
 
-/* =========================
-   CAPACITY HOLDS (OPTIONAL, FUTURE)
-   ========================= */
+/**
+ * =========================
+ * CAPACITY HOLDS (OPTIONAL, FUTURE)
+ * =========================
+ */
 
 enum HoldStatus {
   active
@@ -670,27 +687,29 @@ enum HoldStatus {
  * You can implement later without changing core ordering tables.
  */
 model CapacityHold {
-  id              Int @id @default(autoincrement())
-  menuOfferingId  Int @map("menu_offering_id")
-  orderId         Int? @map("order_id")
-  quantity        Int
+  id             Int  @id @default(autoincrement())
+  menuOfferingId Int  @map("menu_offering_id")
+  orderId        Int? @map("order_id")
+  quantity       Int
 
-  status          HoldStatus @default(active)
-  expiresAt       DateTime   @map("expires_at")
+  status    HoldStatus @default(active)
+  expiresAt DateTime   @map("expires_at")
 
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  offering        MenuOffering @relation(fields: [menuOfferingId], references: [id])
-  order           Order?       @relation(fields: [orderId], references: [id])
+  offering MenuOffering @relation(fields: [menuOfferingId], references: [id])
+  order    Order?       @relation(fields: [orderId], references: [id])
 
   @@index([menuOfferingId])
   @@index([orderId])
   @@index([expiresAt])
 }
 
-/* =========================
-   PROMOS / REWARDS (CLEAN & EXTENDABLE)
-   ========================= */
+/**
+ * =========================
+ * PROMOS / REWARDS (CLEAN & EXTENDABLE)
+ * =========================
+ */
 
 enum PromotionType {
   fixed
@@ -698,63 +717,63 @@ enum PromotionType {
 }
 
 model Promotion {
-  id              Int @id @default(autoincrement())
-  code            String @unique
-  description     String?
+  id          Int     @id @default(autoincrement())
+  code        String  @unique
+  description String?
 
-  type            PromotionType
+  type PromotionType
 
   // Use one or both depending on type
-  amountCents     Int? @map("amount_cents")   // for fixed
-  percentBps      Int? @map("percent_bps")    // for percent (basis points, e.g. 1500 = 15%)
+  amountCents Int? @map("amount_cents") // for fixed
+  percentBps  Int? @map("percent_bps") // for percent (basis points, e.g. 1500 = 15%)
 
   minSubtotalCents Int? @map("min_subtotal_cents")
   maxRedemptions   Int? @map("max_redemptions")
   perUserLimit     Int? @map("per_user_limit")
 
-  startsAt        DateTime @map("starts_at")
-  endsAt          DateTime? @map("ends_at")
-  isActive        Boolean @default(true) @map("is_active")
+  startsAt DateTime  @map("starts_at")
+  endsAt   DateTime? @map("ends_at")
+  isActive Boolean   @default(true) @map("is_active")
 
-  redemptions     PromotionRedemption[]
+  redemptions PromotionRedemption[]
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([isActive])
   @@index([startsAt])
 }
 
 model PromotionRedemption {
-  id                Int @id @default(autoincrement())
-  promotionId       Int @map("promotion_id")
-  orderId           Int @map("order_id")
-  userId            Int? @map("user_id") // nullable for guest
+  id          Int  @id @default(autoincrement())
+  promotionId Int  @map("promotion_id")
+  orderId     Int  @map("order_id")
+  userId      Int? @map("user_id") // nullable for guest
 
   discountCentsApplied Int @map("discount_cents_applied")
 
-  createdAt         DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  promotion         Promotion @relation(fields: [promotionId], references: [id])
-  order             Order     @relation(fields: [orderId], references: [id])
-  user              User?     @relation(fields: [userId], references: [id])
+  promotion Promotion @relation(fields: [promotionId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
 
   @@unique([promotionId, orderId])
   @@index([userId])
 }
 
 model RewardAccount {
-  id        Int @id @default(autoincrement())
-  userId    Int @unique @map("user_id")
+  id     Int @id @default(autoincrement())
+  userId Int @unique @map("user_id")
 
   // Choose points or credits; points is simplest now
   balancePoints Int @default(0) @map("balance_points")
 
-  user      User @relation(fields: [userId], references: [id])
-  txns      RewardTransaction[]
+  user User                @relation(fields: [userId], references: [id])
+  txns RewardTransaction[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 }
 
 enum RewardTxnType {
@@ -764,26 +783,28 @@ enum RewardTxnType {
 }
 
 model RewardTransaction {
-  id             Int @id @default(autoincrement())
-  rewardAccountId Int @map("reward_account_id")
-  type           RewardTxnType
-  amountPoints   Int @map("amount_points")
+  id              Int           @id @default(autoincrement())
+  rewardAccountId Int           @map("reward_account_id")
+  type            RewardTxnType
+  amountPoints    Int           @map("amount_points")
 
-  orderId        Int? @map("order_id")
-  note           String?
+  orderId Int?    @map("order_id")
+  note    String?
 
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  account        RewardAccount @relation(fields: [rewardAccountId], references: [id])
-  order          Order?        @relation(fields: [orderId], references: [id])
+  account RewardAccount @relation(fields: [rewardAccountId], references: [id])
+  order   Order?        @relation(fields: [orderId], references: [id])
 
   @@index([rewardAccountId])
   @@index([orderId])
 }
 
-/* =========================
-   CATERING (SEPARATE FLOW)
-   ========================= */
+/**
+ * =========================
+ * CATERING (SEPARATE FLOW)
+ * =========================
+ */
 
 enum CateringStatus {
   requested
@@ -796,33 +817,33 @@ enum CateringStatus {
 }
 
 model CateringOrder {
-  id              Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId          Int? @map("user_id")
-  createdByUserId Int? @map("created_by_user_id")
+  userId          Int?        @map("user_id")
+  createdByUserId Int?        @map("created_by_user_id")
   source          OrderSource @default(web)
-  sourceRef       String? @map("source_ref")
+  sourceRef       String?     @map("source_ref")
 
-  status          CateringStatus @default(requested)
+  status CateringStatus @default(requested)
 
-  eventDate       DateTime @map("event_date")
-  guestCount      Int @map("guest_count")
+  eventDate  DateTime @map("event_date")
+  guestCount Int      @map("guest_count")
 
-  customerName    String? @map("customer_name")
-  customerEmail   String? @map("customer_email")
-  customerPhone   String? @map("customer_phone")
+  customerName  String? @map("customer_name")
+  customerEmail String? @map("customer_email")
+  customerPhone String? @map("customer_phone")
 
-  notes           String?
+  notes String?
 
-  totalCents      Int @default(0) @map("total_cents")
+  totalCents Int @default(0) @map("total_cents")
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt      @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user            User? @relation("CateringCustomer", fields: [userId], references: [id])
-  createdBy       User? @relation("CateringCreatedBy", fields: [createdByUserId], references: [id])
+  user      User? @relation("CateringCustomer", fields: [userId], references: [id])
+  createdBy User? @relation("CateringCreatedBy", fields: [createdByUserId], references: [id])
 
-  items           CateringItem[]
+  items CateringItem[]
 }
 
 model CateringItem {
@@ -830,35 +851,37 @@ model CateringItem {
   cateringOrderId Int @map("catering_order_id")
 
   // Either connect to catalog item or keep snapshot-only
-  menuItemId      Int? @map("menu_item_id")
+  menuItemId Int? @map("menu_item_id")
 
-  nameSnapshot    String @map("name_snapshot")
-  quantity        Int
-  unitPriceCents  Int @map("unit_price_cents")
+  nameSnapshot   String @map("name_snapshot")
+  quantity       Int
+  unitPriceCents Int    @map("unit_price_cents")
 
-  cateringOrder   CateringOrder @relation(fields: [cateringOrderId], references: [id])
-  menuItem        MenuItem?     @relation(fields: [menuItemId], references: [id])
+  cateringOrder CateringOrder @relation(fields: [cateringOrderId], references: [id])
+  menuItem      MenuItem?     @relation(fields: [menuItemId], references: [id])
 
   @@index([cateringOrderId])
 }
 
-/* =========================
-   REVIEWS (OPTIONAL)
-   ========================= */
+/**
+ * =========================
+ * REVIEWS (OPTIONAL)
+ * =========================
+ */
 
 model Review {
-  id        Int @id @default(autoincrement())
-  userId    Int @map("user_id")
-  orderId   Int? @map("order_id")
+  id      Int  @id @default(autoincrement())
+  userId  Int  @map("user_id")
+  orderId Int? @map("order_id")
 
-  rating    Int
-  comment   String?
+  rating  Int
+  comment String?
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt      @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User  @relation(fields: [userId], references: [id])
-  order     Order? @relation(fields: [orderId], references: [id])
+  user  User   @relation(fields: [userId], references: [id])
+  order Order? @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
 }
