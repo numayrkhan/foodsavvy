@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../../db");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // POST /api/admin/orders/:id/refund  { amountCents?: number }

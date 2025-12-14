@@ -1,18 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { PrismaClient } = require('./generated/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Pool } = require('pg');
 const Stripe = require("stripe");
 const path = require("path");
 
 dotenv.config();
 
 const app = express();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = require('./db');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;

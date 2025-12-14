@@ -2,8 +2,7 @@
 // server/routes/admin/delivery.js
 const express = require("express");
 const router = express.Router();
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../../db");
 
 // GET full delivery config (settings + slots + blackouts)
 router.get("/delivery/config", async (_req, res) => {
