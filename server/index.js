@@ -10,12 +10,8 @@ const path = require("path");
 dotenv.config();
 
 const app = express();
-// 2. Create the connection pool and adapter
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
-
-// 3. Initialize Prisma with the adapter
 const prisma = new PrismaClient({ adapter });
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
