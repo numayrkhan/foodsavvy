@@ -1,3 +1,4 @@
+@import "tw-animate-css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,3 +6,90 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* =========================
+   Google Places Autocomplete
+   Dark theme (Admin-style)
+   ========================= */
+
+/* The dropdown container */
+.pac-container {
+  background: rgb(17 24 39) !important;         /* gray-900 */
+  border: 1px solid rgb(55 65 81) !important;   /* gray-700 */
+  border-radius: 12px !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5),
+              0 10px 10px -5px rgb(0 0 0 / 0.35) !important;
+  margin-top: 8px !important;
+  overflow: hidden !important;
+
+  /* critical so it appears above your admin layout */
+  z-index: 99999 !important;
+}
+
+/* Each suggestion row */
+.pac-item {
+  background: transparent !important;
+  color: rgb(229 231 235) !important;           /* gray-200 */
+  padding: 10px 12px !important;
+  border-top: 1px solid rgb(31 41 55) !important; /* gray-800 */
+  font-size: 14px !important;
+  cursor: pointer !important;
+}
+
+/* Hover/selected row */
+.pac-item:hover,
+.pac-item-selected {
+  background: rgb(31 41 55) !important;         /* gray-800 */
+}
+
+/* The main bolded part */
+.pac-item-query {
+  color: rgb(255 255 255) !important;
+  font-weight: 700 !important;
+}
+
+/* Matched letters */
+.pac-matched {
+  color: rgb(52 211 153) !important;            /* emerald-400 */
+}
+
+/* Icon (pin) */
+.pac-icon {
+  filter: invert(1) opacity(0.7) !important;
+}
+
+/* Keep Google attribution visible; don't hide it (ToS). */
+
+@layer base {
+  :root {
+    --radius: 0.85rem;
+
+    /* Dark “control center” defaults */
+    --background: 240 6% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 6% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 6% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Map primary to your green accent */
+    --primary: 129 31% 48%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 4% 24%;
+    --input: 240 4% 24%;
+    --ring: 129 31% 48%;
+  }
+}
+

@@ -17,12 +17,22 @@ const { sendOrderConfirmation } = require("./mailer");
 // Serve /uploads as static
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// V2 Public Storefront
+const v2StorefrontRouter = require("./routes/v2/storefront");
+
+const v2CheckoutRouter = require("./routes/v2/checkout");
+
+
 //admin routes
 const authenticateAdminToken = require("./auth/middleware");
 const adminOrdersRoute = require("./routes/admin/orders");
 const adminLoginRoute = require("./routes/admin/login");
 const adminRefundRoute = require("./routes/admin/refund");
 const adminMenus = require("./routes/admin/menus");
+const v2AdminMenusRouter = require("./routes/v2/admin/menus");
+const v2ServiceDaysRouter = require("./routes/v2/admin/service-days");
+const v2AdminCatalogRouter = require("./routes/v2/admin/catalog");
+const v2AdminDeliveryRouter = require("./routes/v2/admin/delivery");
 const uploadsRoute = require("./routes/admin/uploads");
 const adminDelivery = require("./routes/admin/delivery");
 const publicDelivery = require("./routes/admin/delivery");
@@ -307,6 +317,10 @@ app.post(
 );
 
 app.use(express.json());
+
+// V2 Public Storefront
+app.use("/api/v2", v2StorefrontRouter);
+app.use("/api/v2/checkout", v2CheckoutRouter);
 
 // Basic test route
 app.get("/", (req, res) => {
@@ -617,6 +631,10 @@ app.use("/api/admin", adminLoginRoute); // unprotected login
 app.use("/api/admin", authenticateAdminToken, adminOrdersRoute); // protected
 app.use("/api/admin", authenticateAdminToken, adminRefundRoute); // protected
 app.use("/api/admin", authenticateAdminToken, adminMenus); // protected
+app.use("/api/v2/admin", authenticateAdminToken, v2AdminMenusRouter); // protected
+app.use("/api/v2/admin/service-days", authenticateAdminToken, v2ServiceDaysRouter); // protected
+app.use("/api/v2/admin/catalog", authenticateAdminToken, v2AdminCatalogRouter); // protected
+app.use("/api/v2/admin/delivery", authenticateAdminToken, v2AdminDeliveryRouter); // protected
 app.use("/api/admin/uploads", authenticateAdminToken, uploadsRoute); // protected
 app.use("/api/admin", authenticateAdminToken, adminDelivery); // protected
 

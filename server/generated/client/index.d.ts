@@ -20180,6 +20180,7 @@ export namespace Prisma {
     originLat: number | null
     originLng: number | null
     maxRadiusMiles: number | null
+    rateCentsPerMile: number | null
   }
 
   export type DeliverySettingsSumAggregateOutputType = {
@@ -20187,6 +20188,7 @@ export namespace Prisma {
     originLat: number | null
     originLng: number | null
     maxRadiusMiles: number | null
+    rateCentsPerMile: number | null
   }
 
   export type DeliverySettingsMinAggregateOutputType = {
@@ -20196,6 +20198,7 @@ export namespace Prisma {
     originLng: number | null
     maxRadiusMiles: number | null
     pricingMode: $Enums.DeliveryPricingMode | null
+    rateCentsPerMile: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -20207,6 +20210,7 @@ export namespace Prisma {
     originLng: number | null
     maxRadiusMiles: number | null
     pricingMode: $Enums.DeliveryPricingMode | null
+    rateCentsPerMile: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -20220,6 +20224,7 @@ export namespace Prisma {
     feeTiers: number
     bundlePolicy: number
     pricingMode: number
+    rateCentsPerMile: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -20231,6 +20236,7 @@ export namespace Prisma {
     originLat?: true
     originLng?: true
     maxRadiusMiles?: true
+    rateCentsPerMile?: true
   }
 
   export type DeliverySettingsSumAggregateInputType = {
@@ -20238,6 +20244,7 @@ export namespace Prisma {
     originLat?: true
     originLng?: true
     maxRadiusMiles?: true
+    rateCentsPerMile?: true
   }
 
   export type DeliverySettingsMinAggregateInputType = {
@@ -20247,6 +20254,7 @@ export namespace Prisma {
     originLng?: true
     maxRadiusMiles?: true
     pricingMode?: true
+    rateCentsPerMile?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -20258,6 +20266,7 @@ export namespace Prisma {
     originLng?: true
     maxRadiusMiles?: true
     pricingMode?: true
+    rateCentsPerMile?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -20271,6 +20280,7 @@ export namespace Prisma {
     feeTiers?: true
     bundlePolicy?: true
     pricingMode?: true
+    rateCentsPerMile?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -20371,6 +20381,7 @@ export namespace Prisma {
     feeTiers: JsonValue
     bundlePolicy: JsonValue | null
     pricingMode: $Enums.DeliveryPricingMode
+    rateCentsPerMile: number
     createdAt: Date
     updatedAt: Date
     _count: DeliverySettingsCountAggregateOutputType | null
@@ -20403,6 +20414,7 @@ export namespace Prisma {
     feeTiers?: boolean
     bundlePolicy?: boolean
     pricingMode?: boolean
+    rateCentsPerMile?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["deliverySettings"]>
@@ -20416,6 +20428,7 @@ export namespace Prisma {
     feeTiers?: boolean
     bundlePolicy?: boolean
     pricingMode?: boolean
+    rateCentsPerMile?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["deliverySettings"]>
@@ -20429,6 +20442,7 @@ export namespace Prisma {
     feeTiers?: boolean
     bundlePolicy?: boolean
     pricingMode?: boolean
+    rateCentsPerMile?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["deliverySettings"]>
@@ -20442,11 +20456,12 @@ export namespace Prisma {
     feeTiers?: boolean
     bundlePolicy?: boolean
     pricingMode?: boolean
+    rateCentsPerMile?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type DeliverySettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "originAddress" | "originLat" | "originLng" | "maxRadiusMiles" | "feeTiers" | "bundlePolicy" | "pricingMode" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverySettings"]>
+  export type DeliverySettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "originAddress" | "originLat" | "originLng" | "maxRadiusMiles" | "feeTiers" | "bundlePolicy" | "pricingMode" | "rateCentsPerMile" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverySettings"]>
 
   export type $DeliverySettingsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "DeliverySettings"
@@ -20460,6 +20475,7 @@ export namespace Prisma {
       feeTiers: Prisma.JsonValue
       bundlePolicy: Prisma.JsonValue | null
       pricingMode: $Enums.DeliveryPricingMode
+      rateCentsPerMile: number
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["deliverySettings"]>
@@ -20893,6 +20909,7 @@ export namespace Prisma {
     readonly feeTiers: FieldRef<"DeliverySettings", 'Json'>
     readonly bundlePolicy: FieldRef<"DeliverySettings", 'Json'>
     readonly pricingMode: FieldRef<"DeliverySettings", 'DeliveryPricingMode'>
+    readonly rateCentsPerMile: FieldRef<"DeliverySettings", 'Int'>
     readonly createdAt: FieldRef<"DeliverySettings", 'DateTime'>
     readonly updatedAt: FieldRef<"DeliverySettings", 'DateTime'>
   }
@@ -39845,6 +39862,7 @@ export namespace Prisma {
     feeTiers: 'feeTiers',
     bundlePolicy: 'bundlePolicy',
     pricingMode: 'pricingMode',
+    rateCentsPerMile: 'rateCentsPerMile',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -41523,6 +41541,7 @@ export namespace Prisma {
     feeTiers?: JsonFilter<"DeliverySettings">
     bundlePolicy?: JsonNullableFilter<"DeliverySettings">
     pricingMode?: EnumDeliveryPricingModeFilter<"DeliverySettings"> | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntFilter<"DeliverySettings"> | number
     createdAt?: DateTimeFilter<"DeliverySettings"> | Date | string
     updatedAt?: DateTimeFilter<"DeliverySettings"> | Date | string
   }
@@ -41536,6 +41555,7 @@ export namespace Prisma {
     feeTiers?: SortOrder
     bundlePolicy?: SortOrderInput | SortOrder
     pricingMode?: SortOrder
+    rateCentsPerMile?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -41552,6 +41572,7 @@ export namespace Prisma {
     feeTiers?: JsonFilter<"DeliverySettings">
     bundlePolicy?: JsonNullableFilter<"DeliverySettings">
     pricingMode?: EnumDeliveryPricingModeFilter<"DeliverySettings"> | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntFilter<"DeliverySettings"> | number
     createdAt?: DateTimeFilter<"DeliverySettings"> | Date | string
     updatedAt?: DateTimeFilter<"DeliverySettings"> | Date | string
   }, "id">
@@ -41565,6 +41586,7 @@ export namespace Prisma {
     feeTiers?: SortOrder
     bundlePolicy?: SortOrderInput | SortOrder
     pricingMode?: SortOrder
+    rateCentsPerMile?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: DeliverySettingsCountOrderByAggregateInput
@@ -41586,6 +41608,7 @@ export namespace Prisma {
     feeTiers?: JsonWithAggregatesFilter<"DeliverySettings">
     bundlePolicy?: JsonNullableWithAggregatesFilter<"DeliverySettings">
     pricingMode?: EnumDeliveryPricingModeWithAggregatesFilter<"DeliverySettings"> | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntWithAggregatesFilter<"DeliverySettings"> | number
     createdAt?: DateTimeWithAggregatesFilter<"DeliverySettings"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DeliverySettings"> | Date | string
   }
@@ -44050,6 +44073,7 @@ export namespace Prisma {
     feeTiers: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: $Enums.DeliveryPricingMode
+    rateCentsPerMile?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -44063,6 +44087,7 @@ export namespace Prisma {
     feeTiers: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: $Enums.DeliveryPricingMode
+    rateCentsPerMile?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -44076,6 +44101,7 @@ export namespace Prisma {
     feeTiers?: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: EnumDeliveryPricingModeFieldUpdateOperationsInput | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -44089,6 +44115,7 @@ export namespace Prisma {
     feeTiers?: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: EnumDeliveryPricingModeFieldUpdateOperationsInput | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -44102,6 +44129,7 @@ export namespace Prisma {
     feeTiers: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: $Enums.DeliveryPricingMode
+    rateCentsPerMile?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -44115,6 +44143,7 @@ export namespace Prisma {
     feeTiers?: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: EnumDeliveryPricingModeFieldUpdateOperationsInput | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -44128,6 +44157,7 @@ export namespace Prisma {
     feeTiers?: JsonNullValueInput | InputJsonValue
     bundlePolicy?: NullableJsonNullValueInput | InputJsonValue
     pricingMode?: EnumDeliveryPricingModeFieldUpdateOperationsInput | $Enums.DeliveryPricingMode
+    rateCentsPerMile?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -46655,6 +46685,7 @@ export namespace Prisma {
     feeTiers?: SortOrder
     bundlePolicy?: SortOrder
     pricingMode?: SortOrder
+    rateCentsPerMile?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -46664,6 +46695,7 @@ export namespace Prisma {
     originLat?: SortOrder
     originLng?: SortOrder
     maxRadiusMiles?: SortOrder
+    rateCentsPerMile?: SortOrder
   }
 
   export type DeliverySettingsMaxOrderByAggregateInput = {
@@ -46673,6 +46705,7 @@ export namespace Prisma {
     originLng?: SortOrder
     maxRadiusMiles?: SortOrder
     pricingMode?: SortOrder
+    rateCentsPerMile?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -46684,6 +46717,7 @@ export namespace Prisma {
     originLng?: SortOrder
     maxRadiusMiles?: SortOrder
     pricingMode?: SortOrder
+    rateCentsPerMile?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -46693,6 +46727,7 @@ export namespace Prisma {
     originLat?: SortOrder
     originLng?: SortOrder
     maxRadiusMiles?: SortOrder
+    rateCentsPerMile?: SortOrder
   }
 
   export type FloatWithAggregatesFilter<$PrismaModel = never> = {

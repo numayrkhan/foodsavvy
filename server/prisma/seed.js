@@ -1,212 +1,275 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+// server/prisma/seed.js (V2)
+// Minimal catalog seed for Admin v2 Menu Scheduler
 
-async function seed() {
-  console.log("🌱 Starting database seeding...");
+const path = require("path");
+const dotenv = require("dotenv");
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
-  let testUser = await prisma.user.findUnique({
-    where: { email: "test@example.com" },
+const { PrismaClient } = require("../generated/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
+const { Pool } = require("pg");
+
+// Use the same adapter strategy as your server
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+
+async function upsertCategory({ name, position }) {
+  return prisma.category.upsert({
+    where: { name },
+    update: { position },
+    create: { name, position },
   });
-  if (!testUser) {
-    testUser = await prisma.user.create({
-      data: {
-        name: "Test User",
-        email: "test@example.com",
-        isGuest: true,
-        // add any other required fields here (e.g. passwordHash, role, etc.)
-      },
+}
+
+async function upsertAddOn({ name, priceCents, description = null, imageUrl = null, isActive = true }) {
+  const existing = await prisma.addOn.findFirst({ where: { name } });
+  if (existing) {
+    return prisma.addOn.update({
+      where: { id: existing.id },
+      data: { priceCents, description, imageUrl, isActive },
     });
-    console.log("✅ Created test user:", testUser);
-  } else {
-    console.log("✅ Found existing test user:", testUser);
   }
+  return prisma.addOn.create({
+    data: { name, priceCents, description, imageUrl, isActive },
+  });
+}
 
-  // Clear old data
-  await prisma.menuItemAddOns.deleteMany();
-  await prisma.menuVariant.deleteMany();
-  await prisma.menuItem.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.addOn.deleteMany();
-  await prisma.menu.deleteMany();
+async function upsertMenuItem({ name, categoryId, description = null, imageUrl = null, isActive = true }) {
+  const existing = await prisma.menuItem.findFirst({
+    where: { name, categoryId, archivedAt: null },
+  });
 
-  // Categories
-  const categoriesData = ["Appetizers", "Entrees", "Naan Breads", "Desserts"];
-
-  console.log("Creating categories:", categoriesData);
-  const categories = {};
-  for (const name of categoriesData) {
-    categories[name] = await prisma.category.create({
-      data: { name },
+  if (existing) {
+    return prisma.menuItem.update({
+      where: { id: existing.id },
+      data: { description, imageUrl, isActive },
     });
   }
 
-  // AddOns
-  const addOnsData = [
-    {
-      name: "makhani daal",
-      priceCents: 1099,
-      description: "Creamy lentil dish with spices and herbs.",
-      imageUrl: "./public/daal-makhni.png",
-    },
-    {
-      name: "Garlic Naan",
-      priceCents: 299,
-      description: "One piece of garlic naan.",
-      imageUrl: "./public/garlic-naan.png",
-    },
-    {
-      name: "tandoori chicken",
-      priceCents: 1999,
-      description: "Marinated chicken cooked in a tandoor.",
-      imageUrl: "./public/tandoori-chicken.png",
-    },
+  return prisma.menuItem.create({
+    data: { name, categoryId, description, imageUrl, isActive },
+  });
+}
+
+async function upsertMenuVariant(menuItemId, { label, basePriceCents, baseCapacity = null, isActive = true }) {
+  const existing = await prisma.menuVariant.findFirst({
+    where: { menuItemId, label },
+  });
+
+  if (existing) {
+    return prisma.menuVariant.update({
+      where: { id: existing.id },
+      data: { basePriceCents, baseCapacity, isActive },
+    });
+  }
+
+  return prisma.menuVariant.create({
+    data: { menuItemId, label, basePriceCents, baseCapacity, isActive },
+  });
+}
+
+async function upsertMenuItemAddOn(menuItemId, addOnId, maxQtyPerItem = null) {
+  // MenuItemAddOn has @@id([menuItemId, addOnId])
+  return prisma.menuItemAddOn.upsert({
+    where: { menuItemId_addOnId: { menuItemId, addOnId } },
+    update: { maxQtyPerItem },
+    create: { menuItemId, addOnId, maxQtyPerItem },
+  });
+}
+
+async function upsertSlotTemplate({ label, startMin, endMin, defaultCapacity = 0, isActive = true }) {
+  const existing = await prisma.slotTemplate.findFirst({ where: { label } });
+  if (existing) {
+    return prisma.slotTemplate.update({
+      where: { id: existing.id },
+      data: { startMin, endMin, defaultCapacity, isActive },
+    });
+  }
+  return prisma.slotTemplate.create({
+    data: { label, startMin, endMin, defaultCapacity, isActive },
+  });
+}
+
+async function upsertDeliverySettings() {
+  // DeliverySettings has id default 1, but we’ll upsert by id explicitly
+  const feeTiers = [
+    { toMiles: 5, feeCents: 1000 },
+    { toMiles: 10, feeCents: 1500 },
+    { toMiles: 15, feeCents: 2000 },
   ];
 
-  console.log("Creating addOns:", addOnsData);
-  const addOns = {};
-  for (const addOn of addOnsData) {
-    const createdAddOn = await prisma.addOn.create({ data: addOn });
-    console.log("Created addOn:", createdAddOn);
-    addOns[addOn.name] = createdAddOn;
+  const bundlePolicy = {
+    mode: "bundle",
+    bundleSize: 3,
+    bundleFeeCents: 1500,
+    extraBundleFeeCents: 1000,
+  };
+
+  return prisma.deliverySettings.upsert({
+    where: { id: 1 },
+    update: {
+      originAddress: "UPDATE_ME: Kitchen Origin Address",
+      feeTiers,
+      bundlePolicy,
+      pricingMode: "per_order_bundled",
+      maxRadiusMiles: 15,
+    },
+    create: {
+      id: 1,
+      originAddress: "UPDATE_ME: Kitchen Origin Address",
+      feeTiers,
+      bundlePolicy,
+      pricingMode: "per_order_bundled",
+      maxRadiusMiles: 15,
+    },
+  });
+}
+
+async function main() {
+  console.log("🌱 Seeding V2 catalog (Categories, Items, Variants, AddOns, Links)…");
+
+  // 1) Categories
+  const categoriesData = [
+    { name: "Bowls", position: 0 },
+    { name: "Curries", position: 1 },
+    { name: "Sides", position: 2 },
+    { name: "Desserts", position: 3 },
+  ];
+
+  const categories = {};
+  for (const c of categoriesData) {
+    categories[c.name] = await upsertCategory(c);
   }
+  console.log("✅ Categories upserted:", Object.keys(categories));
 
-  // Weekly Menu
-  const weeklyMenu = await prisma.menu.create({
-    data: {
-      type: "weekly",
-      releaseDate: new Date(),
-      expiresAt: new Date(new Date().setDate(new Date().getDate() + 7)),
-    },
-  });
-  console.log("Weekly menu created:", weeklyMenu);
+  // 2) AddOns
+  const addOnsData = [
+    { name: "Extra Rice", priceCents: 200, description: "Add extra rice." },
+    { name: "Extra Sauce", priceCents: 150, description: "Add extra sauce." },
+    { name: "Garlic Naan", priceCents: 299, description: "One piece of garlic naan." },
+    { name: "Raita", priceCents: 199, description: "Cooling yogurt sauce." },
+  ];
 
-  // Everyday Menu
-  const everydayMenu = await prisma.menu.create({
-    data: {
-      type: "everyday",
-      releaseDate: new Date(),
-      expiresAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-    },
-  });
-  console.log("Everyday menu created:", everydayMenu);
+  const addOns = {};
+  for (const a of addOnsData) {
+    addOns[a.name] = await upsertAddOn(a);
+  }
+  console.log("✅ AddOns upserted:", Object.keys(addOns));
 
-  // MenuItems for Weekly Menu
-  const weeklyMenuItemsData = [
-    {
-      name: "burger",
-      category: "Appetizers",
-      description: "Juicy grilled burger with lettuce, tomato, and cheese.",
-      imageUrl: "./public/burger.png",
-      variants: [{ label: "Single", priceCents: 699 }],
-      addOns: [],
-    },
+  // 3) MenuItems + Variants + AddOnLinks
+  const itemsData = [
     {
       name: "Butter Chicken",
-      category: "Entrees",
+      category: "Curries",
       description: "Tender chicken in a creamy tomato-based sauce.",
-      imageUrl: "./public/butter-chicken.png",
       variants: [
-        { label: "16 oz", priceCents: 1299 },
-        { label: "32 oz", priceCents: 1899 },
+        { label: "Small", basePriceCents: 1299, baseCapacity: 30 },
+        { label: "Large", basePriceCents: 1899, baseCapacity: 20 },
       ],
-      addOns: ["makhani daal"],
+      addOns: [
+        { name: "Extra Rice", maxQtyPerItem: 2 },
+        { name: "Garlic Naan", maxQtyPerItem: 4 },
+        { name: "Extra Sauce", maxQtyPerItem: 3 },
+      ],
     },
     {
-      name: "biryani",
-      category: "Entrees",
-      description: "Fragrant basmati rice with tender chicken and spices.",
-      imageUrl: "./public/biryani.png",
+      name: "Chicken Biryani",
+      category: "Bowls",
+      description: "Fragrant rice with spiced chicken.",
       variants: [
-        { label: "16 oz", priceCents: 1499 },
-        { label: "32 oz", priceCents: 2099 },
+        { label: "Small", basePriceCents: 1399, baseCapacity: 30 },
+        { label: "Large", basePriceCents: 1999, baseCapacity: 20 },
       ],
-      addOns: ["Garlic Naan", "tandoori chicken", "makhani daal"],
+      addOns: [
+        { name: "Raita", maxQtyPerItem: 2 },
+        { name: "Extra Sauce", maxQtyPerItem: 2 },
+      ],
     },
     {
-      name: "Garlic Naan",
-      category: "Naan Breads",
-      description:
-        "Soft leavened flatbread topped with fresh garlic and butter.",
-      imageUrl: "./public/garlic-naan.png",
-      variants: [{ label: "1 piece", priceCents: 299 }],
+      name: "Paneer Tikka Bowl",
+      category: "Bowls",
+      description: "Grilled paneer with spices and rice.",
+      variants: [
+        { label: "Small", basePriceCents: 1299, baseCapacity: 30 },
+        { label: "Large", basePriceCents: 1899, baseCapacity: 20 },
+      ],
+      addOns: [
+        { name: "Extra Rice", maxQtyPerItem: 2 },
+        { name: "Extra Sauce", maxQtyPerItem: 2 },
+      ],
+    },
+    {
+      name: "Daal Makhani",
+      category: "Curries",
+      description: "Creamy lentils slow-cooked with spices.",
+      variants: [
+        { label: "Small", basePriceCents: 1199, baseCapacity: 30 },
+        { label: "Large", basePriceCents: 1799, baseCapacity: 20 },
+      ],
+      addOns: [
+        { name: "Garlic Naan", maxQtyPerItem: 4 },
+        { name: "Extra Rice", maxQtyPerItem: 2 },
+      ],
+    },
+    {
+      name: "Garlic Naan (Menu Item)",
+      category: "Sides",
+      description: "Soft flatbread topped with garlic butter.",
+      variants: [{ label: "1 piece", basePriceCents: 299, baseCapacity: 100 }],
       addOns: [],
     },
     {
       name: "Gulab Jamun",
       category: "Desserts",
-      description: "Sweet milk dumplings soaked in rose cardamom syrup.",
-      imageUrl: "./public/gulab-jamun.png",
-      variants: [{ label: "2 pcs", priceCents: 499 }],
+      description: "Sweet milk dumplings in rose syrup.",
+      variants: [{ label: "2 pcs", basePriceCents: 499, baseCapacity: 50 }],
       addOns: [],
     },
   ];
 
-  // Helper function to create menu items
-  async function createMenuItems(menu, itemsData) {
-    for (const item of itemsData) {
-      const menuItem = await prisma.menuItem.create({
-        data: {
-          name: item.name,
-          description: item.description,
-          imageUrl: item.imageUrl,
-          categoryId: categories[item.category].id,
-          menuId: menu.id,
-          variants: { create: item.variants },
-        },
-      });
-      console.log("Created menuItem:", menuItem);
+  for (const item of itemsData) {
+    const menuItem = await upsertMenuItem({
+      name: item.name,
+      categoryId: categories[item.category].id,
+      description: item.description,
+      imageUrl: null,
+      isActive: true,
+    });
 
-      for (const addOnName of item.addOns) {
-        const link = await prisma.menuItemAddOns.create({
-          data: {
-            menuItemId: menuItem.id,
-            addOnId: addOns[addOnName].id,
-          },
-        });
-        console.log(`Linked addOn '${addOnName}' to '${item.name}':`, link);
+    // Variants
+    for (const v of item.variants) {
+      await upsertMenuVariant(menuItem.id, v);
+    }
+
+    // Add-on links
+    for (const link of item.addOns) {
+      const addOn = addOns[link.name];
+      if (addOn) {
+        await upsertMenuItemAddOn(menuItem.id, addOn.id, link.maxQtyPerItem ?? null);
       }
     }
   }
 
-  await createMenuItems(weeklyMenu, weeklyMenuItemsData);
+  console.log("✅ MenuItems + Variants + AddOnLinks upserted.");
 
-  console.log("Seeding test orders for availability endpoint…");
+  // 4) Slot templates (optional but useful for later)
+  await upsertSlotTemplate({ label: "5:00–6:00 PM", startMin: 17 * 60, endMin: 18 * 60, defaultCapacity: 0 });
+  await upsertSlotTemplate({ label: "6:00–7:00 PM", startMin: 18 * 60, endMin: 19 * 60, defaultCapacity: 0 });
+  console.log("✅ SlotTemplates upserted.");
 
-  // Pick a date to test (YYYY-MM-DD)
-  const testDate = new Date("2025-08-10T00:00:00.000Z");
+  // 5) Delivery settings (optional but helpful later)
+  await upsertDeliverySettings();
+  console.log("✅ DeliverySettings upserted (id=1).");
 
-  // Create two orders with distinct slots
-  await prisma.order.create({
-    data: {
-      userId: 1, // adjust to match an existing user
-      deliveryDate: testDate,
-      deliverySlot: "5:30 PM",
-      // fill in any required order fields with dummy values:
-      totalCents: 2000,
-      fulfillment: "delivery",
-      status: "pending",
-    },
-  });
-  await prisma.order.create({
-    data: {
-      userId: 1,
-      deliveryDate: testDate,
-      deliverySlot: "6:00 PM",
-      totalCents: 3500,
-      fulfillment: "delivery",
-      status: "pending",
-    },
-  });
-
-  console.log("Test orders seeded on", testDate.toDateString());
-
-  console.log("🌱 Database seeding completed successfully!");
-
-  await prisma.$disconnect();
+  console.log("🌱 V2 seed complete.");
 }
 
-seed().catch(async (e) => {
-  console.error("Error seeding:", e);
-  await prisma.$disconnect();
-  process.exit(1);
-});
+main()
+  .catch((e) => {
+    console.error("❌ Seed error:", e);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });

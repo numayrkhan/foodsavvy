@@ -286,6 +286,7 @@ exports.Prisma.DeliverySettingsScalarFieldEnum = {
   feeTiers: 'feeTiers',
   bundlePolicy: 'bundlePolicy',
   pricingMode: 'pricingMode',
+  rateCentsPerMile: 'rateCentsPerMile',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

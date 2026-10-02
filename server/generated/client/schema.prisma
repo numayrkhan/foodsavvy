@@ -390,6 +390,8 @@ model DeliverySettings {
 
   pricingMode DeliveryPricingMode @default(per_order_bundled) @map("pricing_mode")
 
+  rateCentsPerMile Int @default(0) @map("rate_cents_per_mile")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }
