@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "data": {
+    "constants": {
+      "menuTypes": ["EVERYDAY", "LUNCH", "DINNER", "SPECIAL"]
+    },
+    "catalog": {
+      "categories": [
+        { "id": 1, "name": "Curries", "position": 0 }
+      ],
+      "items": [
+        {
+          "id": 101,
+          "name": "Butter Chicken",
+          "description": null,
+          "imageUrl": "...",
+          "categoryId": 1,
+          "isActive": true,
+          "variants": [
+            {
+              "id": 501,
+              "label": "Regular",
+              "basePriceCents": 1500,
+              "baseCapacity": 20,
+              "isActive": true
+            }
+          ],
+          "allowedAddOns": [
+            { "addOnId": 901, "maxQtyPerItem": 2 }
+          ]
+        }
+      ],
+      "addOns": [
+        { "id": 901, "name": "Extra Rice", "priceCents": 300, "isActive": true }
+      ]
+    },
+    "schedule": {
+      "serviceDays": [
+        {
+          "id": 10,
+          "menuDate": "2026-01-05T00:00:00.000Z",
+          "serviceDate": "2026-01-06T12:00:00.000Z",
+          "label": "Monday Menu",
+          "isPublished": false,
+          "isClosed": false,
+          "closedReason": null,
+          "orderingCutoffAt": null
+        }
+      ],
+      "slotTemplates": [
+        { "id": 1, "label": "5:00–6:00 PM", "startMin": 1020, "endMin": 1080, "defaultCapacity": 0, "isActive": true }
+      ]
+    },
+    "activeContext": null
+  }
+}

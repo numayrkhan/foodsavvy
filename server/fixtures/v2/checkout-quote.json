@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "data": {
+    "currency": "USD",
+    "fulfillmentType": "delivery",
+    "checkoutAllowed": true,
+    "issues": [],
+    "subtotalCents": 2500,
+    "adjustments": [
+      { "type": "delivery_fee", "label": "Delivery fee", "amountCents": 500 }
+    ],
+    "totalCents": 3000,
+    "delivery": {
+      "distanceMiles": 3.5,
+      "maxMiles": 10,
+      "isInRange": true,
+      "deliveryFeeCents": 500
+    },
+    "groups": [
+      {
+        "serviceDayId": 101,
+        "serviceDate": "2025-10-25T12:00:00.000Z",
+        "label": "Thanksgiving Special",
+        "sequence": 0,
+        "items": [
+          {
+            "menuOfferingId": 10,
+            "menuVariantId": 5,
+            "menuItemId": 2,
+            "name": "Roast Turkey",
+            "variantLabel": "Whole Bird",
+            "imageUrl": "https://example.com/turkey.jpg",
+            "unitPriceCents": 2500,
+            "quantity": 1,
+            "lineTotalCents": 2500
+          }
+        ]
+      }
+    ]
+  }
+}

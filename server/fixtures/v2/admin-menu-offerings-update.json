@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "data": {
+    "menuId": 55,
+    "count": 2,
+    "offerings": [
+      {
+        "id": 1001,
+        "menuVariantId": 501,
+        "position": 0,
+        "priceOverrideCents": null,
+        "capacityOverride": 50,
+        "isAvailable": true,
+        "maxPerOrder": 5
+      },
+      {
+        "id": 1002,
+        "menuVariantId": 505,
+        "position": 1,
+        "priceOverrideCents": 1200,
+        "capacityOverride": null,
+        "isAvailable": false,
+        "maxPerOrder": null
+      }
+    ]
+  }
+}

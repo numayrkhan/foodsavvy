@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "data": {
+    "serverTimeIso": "2025-10-01T10:00:00.000Z",
+    "serviceDays": [
+      {
+        "id": 1,
+        "menuDate": "2025-10-02T12:00:00.000Z",
+        "serviceDate": "2025-10-03T12:00:00.000Z",
+        "label": "Friday Feast",
+        "orderingCutoffAt": "2025-10-02T18:00:00.000Z"
+      }
+    ]
+  }
+}

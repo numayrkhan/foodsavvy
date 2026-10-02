@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "data": {
+    "kitchen": {
+      "address1": null,
+      "lat": null,
+      "lng": null
+    },
+    "pricing": {
+      "maxMiles": 0,
+      "rateCentsPerMile": 0
+    }
+  }
+}

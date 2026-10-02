@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "data": {
+    "serviceDay": {
+      "id": 1,
+      "label": "Friday Feast",
+      "serviceDate": "2025-10-03T12:00:00.000Z"
+    },
+    "offerings": [
+      {
+        "id": 101,
+        "menuVariantId": 55,
+        "isAvailable": true,
+        "maxPerOrder": null,
+        "priceCents": 1500,
+        "basePriceCents": 1500,
+        "capacity": 20,
+        "baseCapacity": 20,
+        "variant": {
+          "label": "Regular"
+        },
+        "item": {
+          "id": 99,
+          "name": "Spicy Tofu",
+          "description": "Crispy and hot",
+          "imageUrl": "https://example.com/tofu.jpg",
+          "categoryId": 5,
+          "categoryName": "Vegan",
+          "nutrition": { "calories": 350 },
+          "allergens": { "contains": ["soy"] },
+          "addOns": [
+            {
+              "id": 12,
+              "name": "Chili Oil",
+              "priceCents": 50,
+              "maxQtyPerItem": 3
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

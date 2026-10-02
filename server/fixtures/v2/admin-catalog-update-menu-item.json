@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "data": {
+    "id": 101,
+    "name": "Butter Chicken (Updated)",
+    "imageUrl": "https://cdn.example.com/butter-chicken-v2.jpg",
+    "description": "Updated rich tomato gravy.",
+    "categoryId": 2,
+    "nutrition": {
+      "calories": 550,
+      "fat": 30,
+      "carbs": 15,
+      "protein": 30
+    },
+    "allergens": {
+      "contains": ["Milk", "Nuts", "Soy"]
+    },
+    "isActive": true
+  }
+}

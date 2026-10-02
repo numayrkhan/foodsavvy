@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "data": {
+    "id": 101,
+    "name": "Butter Chicken",
+    "imageUrl": "https://foodsavvy-assets.s3.amazonaws.com/butter-chicken.jpg",
+    "description": "Rich tomato gravy with fenugreek and cream.",
+    "categoryId": 1,
+    "nutrition": {
+      "calories": 500,
+      "fat": 35,
+      "carbs": 12,
+      "protein": 28
+    },
+    "allergens": {
+      "contains": ["Milk", "Nuts"]
+    },
+    "isActive": true,
+    "variants": [
+      {
+        "id": 501,
+        "label": "Regular",
+        "basePriceCents": 1499,
+        "baseCapacity": 50,
+        "isActive": true
+      },
+      {
+        "id": 502,
+        "label": "Large (32oz)",
+        "basePriceCents": 2499,
+        "baseCapacity": 20,
+        "isActive": true
+      }
+    ],
+    "addOnLinks": [
+      {
+        "addOnId": 10,
+        "maxQtyPerItem": 2,
+        "addOn": { "id": 10, "name": "Extra Rice", "priceCents": 200, "isActive": true }
+      },
+      {
+        "addOnId": 12,
+        "maxQtyPerItem": 1,
+        "addOn": { "id": 12, "name": "Garlic Naan", "priceCents": 299, "isActive": true }
+      }
+    ]
+  }
+}

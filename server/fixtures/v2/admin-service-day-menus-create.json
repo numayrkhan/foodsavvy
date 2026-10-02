@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "data": {
+    "summary": {
+      "requested": 2,
+      "created": 1,
+      "existed": 1
+    },
+    "results": [
+      {
+        "menuType": "EVERYDAY",
+        "status": "EXISTS",
+        "menu": {
+          "id": 50,
+          "serviceDayId": 105,
+          "menuType": "EVERYDAY",
+          "title": "Daily Menu",
+          "displayOrder": 0,
+          "isPublished": true
+        }
+      },
+      {
+        "menuType": "SPECIAL",
+        "status": "CREATED",
+        "menu": {
+          "id": 51,
+          "serviceDayId": 105,
+          "menuType": "SPECIAL",
+          "title": "Valentine's Special",
+          "displayOrder": 1,
+          "isPublished": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "data": {
+    "id": 205,
+    "menuItemId": 101,
+    "label": "Extra Large",
+    "basePriceCents": 1899,
+    "baseCapacity": 10,
+    "isActive": true
+  }
+}

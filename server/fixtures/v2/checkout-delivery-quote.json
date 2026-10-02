@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "data": {
+    "distanceMiles": 6.42,
+    "maxMiles": 12,
+    "rateCentsPerMile": 150,
+    "deliveryFeeCents": 963,
+    "isInRange": true
+  }
+}

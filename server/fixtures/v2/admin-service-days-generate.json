@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "data": {
+    "summary": {
+      "totalProcessed": 28,
+      "created": 20,
+      "skipped": 8
+    },
+    "details": [
+      {
+        "menuDate": "2025-02-01T12:00:00.000Z",
+        "serviceDate": "2025-02-02T12:00:00.000Z",
+        "status": "CREATED",
+        "id": 105
+      },
+      {
+        "menuDate": "2025-02-02T12:00:00.000Z",
+        "serviceDate": "2025-02-03T12:00:00.000Z",
+        "status": "SKIPPED_EXISTS",
+        "id": null
+      }
+    ]
+  }
+}
