@@ -193,7 +193,9 @@ export const MenuType: {
   EVERYDAY: 'EVERYDAY',
   LUNCH: 'LUNCH',
   DINNER: 'DINNER',
-  SPECIAL: 'SPECIAL'
+  SPECIAL: 'SPECIAL',
+  WEEKLY: 'WEEKLY',
+  WEEKEND: 'WEEKEND'
 };
 
 export type MenuType = (typeof MenuType)[keyof typeof MenuType]

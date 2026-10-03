@@ -518,7 +518,9 @@ exports.MenuType = exports.$Enums.MenuType = {
   EVERYDAY: 'EVERYDAY',
   LUNCH: 'LUNCH',
   DINNER: 'DINNER',
-  SPECIAL: 'SPECIAL'
+  SPECIAL: 'SPECIAL',
+  WEEKLY: 'WEEKLY',
+  WEEKEND: 'WEEKEND'
 };
 
 exports.FulfillmentType = exports.$Enums.FulfillmentType = {
